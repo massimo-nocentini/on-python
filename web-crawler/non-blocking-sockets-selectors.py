@@ -20,18 +20,24 @@ sites = {   ('xkcd.com', 80): connected_to_xkcd_eventhandler,
 
 def prepare_sockets(sites, selector):
 
+    def unregister_and_call(sock, callback):
+
+        @wraps(callback)
+        def wrapper():
+            selector.unregister(sock.fileno())
+            callback()
+
+        return wrapper
+
     sockets = {} 
     for site, callback in sites.items():
 
         sock = socket.socket()
         sock.setblocking(False)
-
-        @wraps(callback)
-        def unregister_and_call(sock=sock, callback=callback):
-            selector.unregister(sock.fileno())
-            callback()
-
-        selector.register(sock.fileno(), EVENT_WRITE, unregister_and_call)
+        
+        selector.register(  sock.fileno(), 
+                            EVENT_WRITE, 
+                            unregister_and_call(sock, callback))
 
         sockets[site] = sock
 
