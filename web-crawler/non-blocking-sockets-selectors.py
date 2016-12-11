@@ -5,16 +5,17 @@ from selectors import DefaultSelector, EVENT_WRITE
 from functools import wraps
 
 
-def unregister(selector, key=lambda sock: sock.fileno()):
+def unregister(selector, key=lambda sock: sock.fileno(), include_event_data=False):
 
-    def U(decorated):
+    def U(decoring):
 
         def make_callback(sock):
 
-            @wraps(decorated)
-            def callback(*args, **kwds):
+            @wraps(decoring)
+            def callback(event_key, event_mask, *args, **kwds):
                 selector.unregister(key(sock))
-                return decorated(*args, **kwds)
+                args = ((event_key, event_mask) if include_event_data else tuple()) + args
+                return decoring(*args, **kwds) 
 
             return callback
 
@@ -24,7 +25,7 @@ def unregister(selector, key=lambda sock: sock.fileno()):
 
 def prepare_sockets(sites, selector):
 
-    sockets = {} 
+    sockets = {}
     for site, handler in sites.items():
 
         sock = socket.socket()
@@ -43,7 +44,7 @@ def loop(selector):
         events = selector.select()
         for event_key, event_mask in events:
             callback = event_key.data
-            callback()
+            callback(event_key, event_mask)
 
 # An async framework builds on the two features we have shown:
 # non-blocking sockets and the event loop, to run concurrent operations on a single thread.
@@ -66,12 +67,13 @@ sites = {   ('xkcd.com', 80): connected_to_xkcd_eventhandler,
             ('oeis.org', 80): connected_to_oeis_eventhandler, 
             ('google.com', 80): connected_to_google_eventhandler, }
 
+print('attempting connections...')
 for site, sock in prepare_sockets(sites, selector).items():
     with suppress(BlockingIOError):
         sock.connect(site)
 
 with suppress(KeyboardInterrupt):
-    loop(selector)
+    loop(selector) # start the event-loop
 
 # We have achieved "concurrency" here, but not what is traditionally called "parallelism". 
 # That is, we built a tiny system that does overlapping I/O. It is capable of beginning 
