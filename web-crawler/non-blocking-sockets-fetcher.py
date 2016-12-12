@@ -1,10 +1,11 @@
 
-import socket, json, re
+import socket, json, re, os
 
 from contextlib import suppress
 from selectors import DefaultSelector, EVENT_WRITE, EVENT_READ
 from functools import wraps
 from collections import namedtuple, deque
+from itertools import count
 
 URL = namedtuple('URL', ['host', 'port', 'resource'])
 
@@ -67,12 +68,15 @@ class fetcher:
             self.done(self.url, self.response.decode('utf8'))
 
 
-def loop(selector, guard=lambda: True):
-    while guard():
+def loop(selector, exit=lambda clock: False):
+
+    for clock in count():
         events = selector.select()
         for event_key, event_mask in events:
             callback = event_key.data
             callback(event_key, event_mask)
+
+        if exit(clock): break
 
 #________________________________________________________________________________}}}
 
@@ -86,22 +90,31 @@ def cross_references(xref):
 def make_resource(oeis_id):
     return r'/search?q=id%3A{}&fmt=json'.format(oeis_id)
 
-seen_urls = set()
+# loads urls already present in `fetched` directory
+seen_urls = {filename[:filename.index('.json')] 
+                for filename in os.listdir('./fetched/') 
+                if filename.endswith('.json')}
 
-def parse_json(url, content, sections=['xref']):
+def parse_json(url, content, sections=['xref'], whole_search=False):
 
     try:
         doc = json.loads(content[content.index('\n{'):])
         
         with open('fetched/{}.json'.format(url.resource), 'w') as f:
-            json.dump(doc, f)
+            if whole_search:
+                json.dump(doc, f)
+            else:
+                results = doc.get('results', [])
+                if results: json.dump(results[0], f)
+            f.flush()
 
         seen_urls.add(url.resource)
         print('fetched resource {}'.format(url.resource))
 
-        references = set.union(*(cross_references(result.get(section, [])) 
+        sets = [cross_references(result.get(section, [])) 
                                     for result in doc.get('results', []) 
-                                    for section in sections))
+                                    for section in sections]
+        references = set.union(*sets)
 
     except ValueError as e:
         print('Generic error for resource {}:\n{}\nRaw content: {}'.format(url.resource, e, content))
@@ -123,18 +136,20 @@ selector = DefaultSelector()
 def xkcd():
     fetcher(URL(host='xkcd.com', port=80, resource='/353/'), selector).fetch()
     with suppress(KeyboardInterrupt):
-        loop(selector) # start the event-loop
+        loop(selector) # start the event-loop, endlessly
 
-def oeis():
+def oeis(at_least=40, initial_resources=set(seen_urls)):
+
     todo_urls = ['A000045']
     for ref in todo_urls:
-        fetcher(URL(host='oeis.org', port=80, resource=ref),
-                selector, done=parse_json, resource_key=make_resource).fetch()
-
+        url = URL(host='oeis.org', port=80, resource=ref)
+        fetcher(url, selector, done=parse_json, resource_key=make_resource).fetch()
+    
     with suppress(KeyboardInterrupt):
-        loop(selector, guard=lambda: len(seen_urls) < 20) 
+        loop(selector, exit=lambda clock: len(seen_urls) - len(initial_resources) > at_least) 
 
-    print('fetched resources: {}'.format(seen_urls))
+    fetched_urls = seen_urls-initial_resources
+    print('fetched {} resources:\n{}'.format(len(fetched_urls), fetched_urls))
 
 # uncomment the example you want to run:
 
