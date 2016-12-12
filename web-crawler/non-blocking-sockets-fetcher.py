@@ -1,5 +1,6 @@
 
-import socket
+import socket, json, re
+
 from contextlib import suppress
 from selectors import DefaultSelector, EVENT_WRITE, EVENT_READ
 from functools import wraps
@@ -24,11 +25,13 @@ def unregister(key=lambda sock: sock.fileno(), include_event_data=False):
 
 class fetcher:
 
-    def __init__(self, url, selector):
+    def __init__(self, url, selector, 
+                 done=lambda response: print('Done reading content:\n{}'.format(response))):
         self.url = url
         self.selector = selector
         self.response = b''
         self.sock = None
+        self.done = done
 
     def fetch(self):
 
@@ -58,8 +61,7 @@ class fetcher:
             self.response += chunk # keep reading
         else: 
             selector.unregister(event_key.fd)  # Done reading.
-            print('Done reading content:\n{}'.format(self.response.decode('ascii')))
-
+            self.done(self.response.decode('utf8'))
 
 def loop(selector):
     while True:
@@ -68,10 +70,32 @@ def loop(selector):
             callback = event_key.data
             callback(event_key, event_mask)
 
+def cross_references(xref):
+    regex = re.compile('(?P<id>A\d{6,6})')
+    return {r for references in xref for r in regex.findall(references)}
+
+
+def parse_json(response):
+
+    try:
+        doc = json.loads(response[response.index('\n{'):])
+    except json.JSONDecodeError as e:
+        print(e)
+        doc = {}
+
+    references = set.union(*(cross_references(result[section]) 
+                                for result in doc.get('results', []) 
+                                for section in ['xref']))
+    print(references)
+
+def make_resource(oeis_id):
+    return r'/search?q=id%3A{}&fmt=json'.format(oeis_id)
 
 selector = DefaultSelector()
 
-fetcher(URL(host='xkcd.com', port=80, resource='/353/'), selector).fetch()
+#fetcher(URL(host='xkcd.com', port=80, resource='/353/'), selector).fetch()
+fetcher(URL(host='oeis.org', port=80, resource=make_resource(oeis_id='A000045')), 
+            selector, done=parse_json).fetch()
 
 with suppress(KeyboardInterrupt):
     loop(selector) # start the event-loop
