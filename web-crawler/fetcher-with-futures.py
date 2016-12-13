@@ -12,24 +12,7 @@ from coroutines import *
 URL = namedtuple('URL', ['host', 'port', 'resource'])
 
 
-# Fetcher class, unregister decorator and event-loop def ________________________________________________________ {{{
-
-'''  {{{
-def unregister(key=lambda sock: sock.fileno(), include_event_data=False):
-
-    def U(decoring):
-
-        @wraps(decoring)
-        def callback(self, event_key, event_mask, *args, **kwds):
-            self.selector.unregister(key(self.sock))
-            args = ((event_key, event_mask) if include_event_data else tuple()) + args
-            return decoring(self, *args, **kwds) 
-
-        return callback
-
-    return U
-
-}}} '''
+# fetcher class and event-loop def ________________________________________________________ {{{
 
 class fetcher:
 
@@ -146,9 +129,9 @@ def parse_json(url, content, sections=['xref'], whole_search=False):
 
     for ref in references - seen_urls:
         # we start a new fetcher for each new URL, with no concurrency cap
-        fetcher(URL(host=url.host, port=url.port, resource=ref), selector, 
-                done=parse_json, resource_key=make_resource).fetch()
-
+        download = task(fetcher(URL(host=url.host, port=url.port, resource=ref), selector, 
+                                done=parse_json, resource_key=make_resource).fetch())
+        download.start()
 
 #________________________________________________________________________________}}}
 
@@ -165,7 +148,8 @@ def oeis(at_least=40, initial_resources=set(seen_urls)):
     todo_urls = ['A000045']
     for ref in todo_urls:
         url = URL(host='oeis.org', port=80, resource=ref)
-        fetcher(url, selector, done=parse_json, resource_key=make_resource).fetch()
+        download = task(coro=fetcher(url, selector, done=parse_json, resource_key=make_resource).fetch())
+        download.start()
     
     with suppress(KeyboardInterrupt):
         loop(selector, exit=lambda clock: len(seen_urls) - len(initial_resources) > at_least) 
@@ -175,8 +159,8 @@ def oeis(at_least=40, initial_resources=set(seen_urls)):
 
 # uncomment the example you want to run:
 
-xkcd()
-#oeis()
+#xkcd()
+oeis()
 
 
 # Notes _________________________________________________________________________
