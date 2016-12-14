@@ -154,10 +154,8 @@ def cross_references(xref):
 def make_resource(oeis_id):
     return r'/search?q=id%3A{}&fmt=json'.format(oeis_id)
 
-# loads urls already present in `fetched` directory
-seen_urls = {filename[:filename.index('.json')] 
-                for filename in os.listdir('./fetched/') 
-                if filename.endswith('.json')}
+# fetched urls, with a corresponding file present in `./fetched/` directory.
+seen_urls = set()
 
 # urls currently under fetching
 fetching_urls = set()
@@ -201,6 +199,23 @@ def parse_json(url, content, sections=['xref'], whole_search=False):
         download.start()
         fetching_urls.add(ref)
 
+def urls_already_fetched(subdir='./fetched/', init=['A000045']):
+    fetched_resources = {filename[:filename.index('.json')]: subdir + filename 
+                            for filename in os.listdir(subdir) if filename.endswith('.json')}
+
+    initial_urls = set(init)
+    for resource, filename in fetched_resources.items():
+        with open(filename) as f:
+            doc = json.loads(f.read())  
+
+        # every resource with a attached file should be considered as an already seen urls
+        seen_urls.add(resource) 
+
+        # we consider its fringe as starting urls to fetch
+        initial_urls.update(cross_references(doc.get('xref', set()))) 
+
+    return initial_urls
+
 #________________________________________________________________________________}}}
 
 selector = DefaultSelector()
@@ -214,22 +229,26 @@ def xkcd():
     with suppress(KeyboardInterrupt):
         loop(selector) # start the event-loop, endlessly
 
-def oeis(at_least=40, initial_resources=set(seen_urls)):
+def oeis(at_least=40):
 
-    todo_urls = ['A000045']
-    for ref in todo_urls:
+    initial_urls = urls_already_fetched()
+
+    print('restarting with {} urls in the fringe'.format(len(initial_urls)))
+
+    for ref in initial_urls:
         url = URL(host='oeis.org', port=80, resource=ref)
         preparing = fetcher(url, selector, done=parse_json, resource_key=make_resource)
         download = task(coro=preparing.fetch())
         download.start()
+        fetching_urls.add(ref)
     
     def exit(clock): 
-        return len(seen_urls) - len(initial_resources) > at_least 
+        return len(seen_urls) - len(initial_urls) > at_least 
 
     with suppress(KeyboardInterrupt):
         clock = loop(selector, exit) 
 
-    fetched_urls = seen_urls-initial_resources
+    fetched_urls = seen_urls - initial_urls
     print('fetched {} resources in {} clock ticks:\n{}'.format(
             len(fetched_urls), clock, fetched_urls))
 

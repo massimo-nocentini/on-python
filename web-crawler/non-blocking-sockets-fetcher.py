@@ -90,10 +90,8 @@ def cross_references(xref):
 def make_resource(oeis_id):
     return r'/search?q=id%3A{}&fmt=json'.format(oeis_id)
 
-# loads urls already present in `fetched` directory
-seen_urls = {filename[:filename.index('.json')] 
-                for filename in os.listdir('./fetched/') 
-                if filename.endswith('.json')}
+# always start fresh, in later scripts we lookup for already fetched resources
+seen_urls = set() 
 
 def parse_json(url, content, sections=['xref'], whole_search=False):
 
