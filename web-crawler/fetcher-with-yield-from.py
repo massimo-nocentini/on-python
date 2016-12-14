@@ -26,6 +26,10 @@ class future:
         for c in self._callbacks: 
             c(resolved_future=self)
 
+    def __iter__(self):
+        yield self
+        return self.result
+
 class task:
 
     def __init__(self, coro):
@@ -82,10 +86,7 @@ class fetcher:
                                 EVENT_WRITE, 
                                 connected_eventhandler)
 
-        # the following `yield` makes method `fetch` a generator function.
-        # We create a pending future, then yield it to pause `fetch` until the 
-        # socket is ready. The inner function `connected_eventhandler` resolves the future.
-        should_be_connected = yield f
+        should_be_connected = yield from f
         assert connected_message == should_be_connected
 
         self.selector.unregister(self.sock.fileno())
@@ -93,9 +94,6 @@ class fetcher:
         print('Connection established with {} asking resource {}'.format(
                 self.url.host, self.url.resource))
 
-        # once the socket is connected, we send the HTTP GET request and read the 
-        # server response. These steps need no longer be scattered among callbacks; 
-        # we gather them into this very same generator function `fetch`:
         self.sock.send(self.encode_request())
         
         self.response = yield from self.read_all()
@@ -113,7 +111,7 @@ class fetcher:
                                 EVENT_READ, 
                                 readable_eventhandler)
 
-        chunk = yield f # read _one_ chunk
+        chunk = yield from f # read _one_ chunk
 
         selector.unregister(self.sock.fileno())
 
@@ -224,7 +222,6 @@ def oeis(at_least=40, initial_resources=set(seen_urls)):
         preparing = fetcher(url, selector, done=parse_json, resource_key=make_resource)
         download = task(coro=preparing.fetch())
         download.start()
-        fetching_urls.add(ref)
     
     def exit(clock): 
         return len(seen_urls) - len(initial_resources) > at_least 
@@ -243,9 +240,33 @@ oeis()
 
 
 # Notes _________________________________________________________________________
-# The `task` starts the `fetch` generator by sending a resolved future, 
-# namely `None`, into it. Then `fetch` runs until it yields a future, which the 
-# task captures as `pending_future`. When the socket is connected, the event loop 
-# runs the callback `connected_eventhandler`, which resolves the future, 
-# which calls `task.__call__`, which resumes `fetch`.
+# If you squint the right way, the `yield from` statements disappear and these look 
+# like conventional functions doing blocking I/O. But in fact, defs `read` and `read_all` 
+# are coroutines. Yielding from `read` pauses `read_all` until the I/O completes. 
+# While `read_all` is paused, asyncio's event loop does other work and awaits other 
+# I/O events; `read_all` is resumed with the result of read on the next loop tick 
+# once its event is ready. Miraculously, the `task` class needs no modification. 
+# It drives the outer `fetch` coroutine just the same as before.
+# When `read` yields a future, the `task` object receives it through the channel 
+# of `yield from` statements, precisely as if the future were yielded directly from 
+# `fetch`. When the loop resolves a future, the `task` object sends its result into 
+# `fetch`, and the value is received by `read`, exactly as if the `task` object
+# were driving read directly.
+# To perfect our coroutine implementation, we polish out one mar: our code uses 
+# `yield` when it waits for a future, but `yield from` when it delegates to a 
+# sub-coroutine. It would be more refined if we used `yield from` whenever a 
+# coroutine pauses. Then a coroutine need not concern itself with what type 
+# of thing it awaits. We take advantage of the deep correspondence in Python 
+# between generators and iterators. Advancing a generator is, to the caller, 
+# the same as advancing an iterator. So we make our `future` class iterable by 
+# implementing the special method `__init__`...the outcome is the same! 
+# The driving `task` object receives the future from its call to `send`, and 
+# when the future is resolved it sends the new result back into the coroutine.
+# What is the advantage of using `yield from` everywhere? Why is that better than 
+# waiting for futures with `yield` and delegating to sub-coroutines with `yield from`? 
+# It is better because now, a method can freely change its implementation without 
+# affecting the caller: it might be a normal method that returns a `future` object
+#  that will resolve to a value, or it might be a coroutine that contains `yield from` 
+# statements and returns a value. In either case, the caller need only to use `yield from` 
+# in order to wait for the result.
 
