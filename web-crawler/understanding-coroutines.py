@@ -77,6 +77,20 @@ def gen_fn():
         gen.send('goodbye')
     StopIteration: done
 
+    You can throw an exception into a generator from outside:
+    >>> gen = gen_fn()
+    >>> gen.send(None)
+    1
+    >>> gen.throw(Exception('error'))
+    Traceback (most recent call last):
+      File "/usr/local/lib/python3.5/doctest.py", line 1321, in __run
+        compileflags, 1), test.globs)
+      File "<doctest __main__.gen_fn[15]>", line 1, in <module>
+        gen.throw(Exception('error'))
+      File "understanding-coroutines.py", line 87, in gen_fn
+        result = yield 1
+    Exception: error
+
     '''
     result = yield 1
     print('value sent to 1st yield: {}'.format(result))
