@@ -15,6 +15,35 @@ class StopError(BaseException): pass
 
 # future, task, queue and eventloop classes _______________________________________________________{{{
 
+class reader:
+
+    def __init__(self, read):
+        self.read = read
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        chunk = await self.read()
+        if chunk:   return chunk
+        else:       raise StopAsyncIteration
+
+class pending:
+
+    def __init__(self, handler):
+        self.handler = handler
+
+    async def __aenter__(self):
+
+        f = future()
+        self.handler(future=f)
+        obj = await f
+        return obj
+
+    async def __aexit__(self, exc_type, exc, tb):
+        pass
+
+
 class future:
     ''' I represent some pending result that a coroutine is waiting for. '''
 
@@ -79,13 +108,11 @@ class queue(deque):
 
     async def get(self):
 
-        item_in_queue = future()
+        def item_available(future):
+            self.waiting_gets.append(lambda: future.resolve(value=self.popleft()))
 
-        self.waiting_gets.append(lambda: item_in_queue.resolve(value=self.popleft()))
-
-        item = await item_in_queue
-
-        return item
+        async with pending(handler=item_available) as item:
+            return item
             
 
     def _queue_not_empty_event(self):
@@ -155,16 +182,17 @@ class fetcher:
             site = self.url.host, self.url.port
             self.sock.connect(site)
             
-        connection = future()
 
-        def connected_eventhandler(event_key, event_mask):
-            connection.resolve(value='socket connected, ready for transmission')
+        def connection(future):
 
-        self.selector.register( self.sock.fileno(), 
-                                EVENT_WRITE, 
-                                connected_eventhandler)
+            def connected_eventhandler(event_key, event_mask):
+                future.resolve(value='socket connected, ready for transmission')
 
-        await connection
+            self.selector.register( self.sock.fileno(), 
+                                    EVENT_WRITE, 
+                                    connected_eventhandler)
+
+        async with pending(handler=connection): pass
 
         self.selector.unregister(self.sock.fileno())
 
@@ -179,33 +207,25 @@ class fetcher:
 
     async def read(self):
 
-        chunk_delivery = future()
+        def chunk_delivery(future):
 
-        def readable_eventhandler(event_key, event_mask):
-            chunk_delivery.resolve(value=self.sock.recv(4096))  # 4k chunk size.
+            def readable_eventhandler(event_key, event_mask):
+                future.resolve(value=self.sock.recv(4096))  # 4k chunk size.
 
-        self.selector.register( self.sock.fileno(), 
-                                EVENT_READ, 
-                                readable_eventhandler)
+            self.selector.register( self.sock.fileno(), 
+                                    EVENT_READ, 
+                                    readable_eventhandler)
 
-        chunk = await chunk_delivery
+        async with pending(handler=chunk_delivery) as chunk:
+            selector.unregister(self.sock.fileno())
+            return chunk
 
-        selector.unregister(self.sock.fileno())
-
-        return chunk
 
     async def read_all(self):
 
         response = []
-
-        while True:
-
-            chunk = await self.read()
-
-            if chunk: 
-                response.append(chunk)
-            else:
-                break
+        async for chunk in reader(self.read):
+            response.append(chunk)
 
         return b''.join(response)
 
@@ -216,7 +236,6 @@ class crawler:
         self.resources = resources
         self.max_tasks = max_tasks
         self.fetcher_factory = fetcher_factory
-
         self.q = queue() 
 
     async def crawl(self):
