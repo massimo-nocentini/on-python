@@ -79,11 +79,11 @@ class queue(deque):
 
     async def get(self):
 
-        f = future()
+        item_in_queue = future()
 
-        self.waiting_gets.append(lambda: f.resolve(value=self.popleft()))
+        self.waiting_gets.append(lambda: item_in_queue.resolve(value=self.popleft()))
 
-        item = await f # invariant: `assert item == self.popleft()`
+        item = await item_in_queue
 
         return item
             
@@ -155,18 +155,16 @@ class fetcher:
             site = self.url.host, self.url.port
             self.sock.connect(site)
             
-        f = future()
+        connection = future()
 
-        connected_message = 'socket connected, ready for transmission'
         def connected_eventhandler(event_key, event_mask):
-            f.resolve(value=connected_message)
+            connection.resolve(value='socket connected, ready for transmission')
 
         self.selector.register( self.sock.fileno(), 
                                 EVENT_WRITE, 
                                 connected_eventhandler)
 
-        should_be_connected = await f
-        assert connected_message == should_be_connected
+        await connection
 
         self.selector.unregister(self.sock.fileno())
 
@@ -181,16 +179,16 @@ class fetcher:
 
     async def read(self):
 
-        f = future()
+        chunk_delivery = future()
 
         def readable_eventhandler(event_key, event_mask):
-            f.resolve(value=self.sock.recv(4096))  # 4k chunk size.
+            chunk_delivery.resolve(value=self.sock.recv(4096))  # 4k chunk size.
 
         self.selector.register( self.sock.fileno(), 
                                 EVENT_READ, 
                                 readable_eventhandler)
 
-        chunk = await f # read _one_ chunk
+        chunk = await chunk_delivery
 
         selector.unregister(self.sock.fileno())
 
