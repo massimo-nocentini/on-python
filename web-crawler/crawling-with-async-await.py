@@ -6,6 +6,10 @@ from selectors import DefaultSelector, EVENT_WRITE, EVENT_READ
 from functools import wraps, partial
 from collections import namedtuple, deque
 from itertools import count
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 URL = namedtuple('URL', ['host', 'port', 'resource'])
 RestartingUrls = namedtuple('RestartingUrls', ['seen', 'fringe'])
@@ -196,7 +200,7 @@ class fetcher:
 
         self.selector.unregister(self.sock.fileno())
 
-        print('Connection established with {} asking resource {}'.format(
+        logger.info('Connection established with {} asking resource {}'.format(
                 self.url.host, self.url.resource))
 
         self.sock.send(self.encode_request())
@@ -302,18 +306,18 @@ def parse_json(url, content, appender,):
             f.flush()
 
         seen_urls.add(url.resource)
-        print('fetched resource {}'.format(url.resource))
+        logger.info('fetched resource {}'.format(url.resource))
 
         references.update(*sets_of_cross_references(doc))
 
     except ValueError as e:
         message = 'Generic error for resource {}:\n{}\nRaw content: {}'
-        print(message.format(url.resource, e, content))
+        logger.info(message.format(url.resource, e, content))
         references.add(url.resource)
 
     except json.JSONDecodeError as e:
         message = 'Decoding error for {}:\nException: {}\nRaw content: {}'
-        print(message.format(url.resource, e, content))
+        logger.info(message.format(url.resource, e, content))
         references.add(url.resource)
 
     for ref in references:
@@ -362,7 +366,7 @@ def oeis(loop):
 
     seen_urls.update(initial_urls.seen)
 
-    print('restarting with {} urls in the fringe, having fetched already {} resources.'.format(
+    logger.info('restarting with {} urls in the fringe, having fetched already {} resources.'.format(
             len(initial_urls.fringe), len(initial_urls.seen)))
 
     def factory(resource, appender):
@@ -378,7 +382,7 @@ def oeis(loop):
         result, clock = loop.run_until_complete(crawl_job.crawl())
 
     fetched_urls = seen_urls - initial_urls.seen
-    print('fetched {} resources:\n{}'.format(len(fetched_urls), fetched_urls))
+    logger.info('fetched {} resources:\n{}'.format(len(fetched_urls), fetched_urls))
 
 # uncomment the example you want to run:
 
