@@ -1,9 +1,12 @@
 
-# A Web Crawler With asyncio Coroutines
+# A Web Crawler With `asyncio` Coroutines
 
+the article http://aosabook.org/en/500L/a-web-crawler-with-asyncio-coroutines.html
+by *A. Jesse Jiryu Davis and Guido van Rossum*, re-mastered. 
 
-following the article http://aosabook.org/en/500L/a-web-crawler-with-asyncio-coroutines.html
-by *A. Jesse Jiryu Davis and Guido van Rossum*. We report their introduction:
+## Introduction
+
+We report their words:
 
 > Classical computer science emphasizes efficient algorithms that complete computations as 
 > quickly as possible. But many networked programs spend their time not computing, but holding 
@@ -25,7 +28,9 @@ by *A. Jesse Jiryu Davis and Guido van Rossum*. We report their introduction:
 > standard `asyncio` library, and coordinate them using an async queue.
 
 Moreover, we get inspiration from their article to adapt it to our needs, namely we would like to
-have a crawler for the [OEIS][oeis].
+have a crawler for the [OEIS][oeis] in order to fetch and save results for each sequence of numbers
+(http://oeis.org/A000045 <-> A000045.json, for an example) in a json document to be crunched offline 
+and mechanically.
 
 Progress and discussion about my work in the PR https://github.com/massimo-nocentini/on-python/pull/1
 
