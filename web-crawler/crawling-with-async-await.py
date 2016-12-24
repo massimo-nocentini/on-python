@@ -17,7 +17,7 @@ RestartingUrls = namedtuple('RestartingUrls', ['seen', 'fringe'])
 class CancelledError(BaseException): pass
 class StopError(BaseException): pass
 
-# future, task, queue and eventloop classes _______________________________________________________{{{
+# future, task, queue and eventloop classes {{{
 
 class reader:
 
@@ -73,8 +73,8 @@ class task(future):
         future.__init__(self)
         self.coro = coro
 
-    def start(self):
-        return self(resolved_future=future())
+    def start(self, *args, **kwds):
+        return self(*args, resolved_future=future(), **kwds)
 
     def __call__(self, resolved_future, return_value=None, cancelled_value=None):
         try:
@@ -133,7 +133,6 @@ class eventloop:
         self.coro_result = None
         
     def _run_forever(self):
-
         while True:
             events = self.selector.select()
             self.ticks += 1
@@ -184,9 +183,12 @@ class fetcher:
 
         with suppress(BlockingIOError):
             site = self.url.host, self.url.port
-            self.sock.connect(site)
+            try:
+                self.sock.connect(site)
+            except socket.gaierror as exc:
+                logger.info('socket.connect fails on resource {}, discarding it'.format(self.url.resource))
+                return
             
-
         def connection(future):
 
             def connected_eventhandler(event_key, event_mask):
@@ -277,7 +279,6 @@ class crawler:
 
 # OEIS stuff ____________________________________________________________________{{{
 
-seen_urls = set()
 
 def cross_references(xref):
     regex = re.compile('(?P<id>A\d{6,6})')
@@ -292,7 +293,7 @@ def sets_of_cross_references(doc, sections=['xref']):
             for section in sections]
     return sets
 
-def parse_json(url, content, appender,):
+def parse_json(url, content, appender, seen_urls):
     
     references = set()
 
@@ -318,7 +319,7 @@ def parse_json(url, content, appender,):
         logger.info(message.format(url.resource, e, content))
         references.add(url.resource)
 
-    for ref in references:
+    for ref in references - seen_urls:
         appender(ref)
 
 def urls_already_fetched(subdir='./fetched/', init=set()):
@@ -362,6 +363,7 @@ def oeis(loop):
 
     initial_urls = urls_already_fetched(init={'A000045'})
 
+    seen_urls = set()
     seen_urls.update(initial_urls.seen)
 
     logger.info('restarting with {} urls in the fringe, having fetched already {} resources.'.format(
@@ -370,7 +372,7 @@ def oeis(loop):
     def factory(resource, appender):
         url = URL(host='oeis.org', port=80, resource=resource)
         return fetcher( url, selector, 
-                        done=partial(parse_json, appender=appender), 
+                        done=partial(parse_json, appender=appender, seen_urls=seen_urls), 
                         resource_key=make_resource)
 
     crawl_job = crawler(resources=initial_urls.fringe, 
