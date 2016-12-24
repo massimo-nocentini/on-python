@@ -227,9 +227,7 @@ class fetcher:
 
     async def read_all(self):
 
-        response = []
-        async for chunk in reader(self.read):
-            response.append(chunk)
+        response = [chunk async for chunk in reader(self.read)]
 
         return b''.join(response)
 
