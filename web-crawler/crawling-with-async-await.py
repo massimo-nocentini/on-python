@@ -178,7 +178,12 @@ class fetcher:
 
     async def fetch(self):
 
-        self.sock = socket.socket()
+        try:
+            self.sock = socket.socket()
+        except OSError as exc: # to catch 'Too many open files' exception
+            logger.error('unable to make a new socket:\n{}'.format(exc))
+            return
+
         self.sock.setblocking(False)
 
         with suppress(BlockingIOError):
@@ -186,7 +191,7 @@ class fetcher:
             try:
                 self.sock.connect(site)
             except socket.gaierror as exc:
-                logger.info('socket.connect fails on resource {}, discarding it'.format(self.url.resource))
+                logger.error('socket.connect fails on resource {}, discarding it'.format(self.url.resource))
                 return
             
         def connection(future):
@@ -208,6 +213,8 @@ class fetcher:
         self.sock.send(self.encode_request())
         
         self.response = await self.read_all()
+        
+        self.sock.close()
 
         return self.done(self.url, self.response.decode('utf8'))
 
