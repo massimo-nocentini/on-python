@@ -89,7 +89,7 @@ them.
   coroutines and latest *asynch comprehension* introduced in Python 3.6.
 - _Intermezzo_ ([source][intermezzo]): <br> understanding generators
   objects and `yield from` expressions for understanding `coroutine`
-  objects.
+  objects; `doctests` are used to record assertions.
 
 ## Reproducibility 
 
