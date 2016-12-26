@@ -1,4 +1,4 @@
-a
+
 # A Web Crawler With `asyncio` Coroutines
 
 the article
@@ -73,11 +73,17 @@ numbering corresponds to the numbers recorded in commit messages.
   objects and `yield from` expressions for understanding `coroutine`
   objects.
 
-For each of the above step there exists a rule in the `Makefile` file to
-run it, this means that each step is *executable* and, starting from
-_Step 3_, all of them fetch and store data as explained in the
-§Introduction.
+## Reproducibility 
 
+For each step in the sequence above there exists a rule in the
+`Makefile` file to run it, this means that each step is *executable*
+and, starting from _Step 3_, all of them fetch and store data as
+explained in the §Introduction. Only _Step 6.5_ requires Python 3.6, for
+the others Python 3.5 is fine.
+
+## Acknowledgements
+
+Thank you, Guido and Jesse!
 
 [oeis]:http://oeis.org
 
