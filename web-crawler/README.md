@@ -53,15 +53,20 @@ expressions with `async/await` ones.
 At the beginning, progress and discussion of this project can be found in the PR
 https://github.com/massimo-nocentini/on-python/pull/1 . We study the
 original article and divide it in a sequence of steps, each one large
-enough to represent a bunch of high cohesive concept: the sequence
-represent an accumulating of understanding, hence each step is a
+enough to represent a bunch of high cohesive concepts: the sequence
+represent an accumulating of knowledge, hence each step is a
 building block for the next one, in fact we believe it is interesting to
 look at differences between consecutive ones to understand how the
-gained skill changes the way we write code.
+gained skill changes the way we write code. We believe that splitting
+the incremental work in dedicated files, one for each step, allows us to
+manage the complexity of both studying the material and make it real in
+code. 
 
 Moreover, in the following sections we report the sequence of changes
 that leads us to the final version of the code base; accordingly, step
-numbering corresponds to the numbers recorded in commit messages.
+numbering corresponds to the numbers recorded in commit messages and
+we provide a succint description of features implemented in each one of
+them.
 
 - _Step 1_ ([source][step-one]): <br> sends a single GET request using a
   tight loop to know when the job is done; however, no handling of
@@ -92,7 +97,13 @@ For each step in the sequence above there exists a rule in the
 `Makefile` file to run it, this means that each step is *executable*
 and, starting from _Step 3_, all of them fetch and store data as
 explained in the §Introduction. Only _Step 6.5_ requires Python 3.6, for
-the others Python 3.5 is fine.
+the others Python 3.5 is fine. 
+
+Each step has a purpose, whose result can be seen by running it: the
+first two of them shows when connections with server happens, while the
+latters populate the `fetched/` directory with json documents,
+containing OEIS search results.
+
 
 ## Acknowledgements
 
