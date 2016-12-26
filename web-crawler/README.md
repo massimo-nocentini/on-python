@@ -34,17 +34,30 @@ We report their words:
 > stage, we use the full-featured coroutines from Python's standard
 > `asyncio` library, and coordinate them using an async queue.
 
-Moreover, we get inspiration from their article to adapt their prototype
-to our needs, namely we would like to have a crawler for the
-[OEIS][oeis] in order to fetch and save results for each sequence of
-numbers  in corresponding json documents (ie. search
-http://oeis.org/A000045 will produce the `A000045.json` file), to be
-crunched offline and mechanically later.
+## Motivation
+
+We get inspiration from them to adapt their prototype to our needs,
+namely we would like to have a crawler for the [OEIS][oeis] in order to
+fetch and save results for each sequence of numbers  in corresponding
+json documents (ie. search http://oeis.org/A000045 will produce the
+`A000045.json` file), to be crunched offline and mechanically later.
+
+However, the fundamental reason underlying this work is to understand
+the _asynchronous pattern of computation_ and the Pythonic way to write
+it, in particular to provide some basis to understand definitions in the
+`asyncio` module, `coroutine` objects and the relation among `yield`
+expressions with `async/await` ones. 
 
 ## Implementation steps
 
-Progress and discussion about our work can be found in the PR
-https://github.com/massimo-nocentini/on-python/pull/1
+At the beginning, progress and discussion of this project can be found in the PR
+https://github.com/massimo-nocentini/on-python/pull/1 . We study the
+original article and divide it in a sequence of steps, each one large
+enough to represent a bunch of high cohesive concept: the sequence
+represent an accumulating of understanding, hence each step is a
+building block for the next one, in fact we believe it is interesting to
+look at differences between consecutive ones to understand how the
+gained skill changes the way we write code.
 
 Moreover, in the following sections we report the sequence of changes
 that leads us to the final version of the code base; accordingly, step
