@@ -5,7 +5,7 @@
 
 from functools import wraps, partial
 
-def debug(func):
+def debug_simple(func):
     '''
     A simple debugging decorator
     '''
@@ -32,6 +32,9 @@ def debugargs(prefix=''):
 def debug(func=None, *, prefix=''):
     '''
     Decorator with or without optional arguments
+
+    This decorator allows us to not nest an inner definition
+    to separate args from the decorated function.
     '''
     if func is None:
         return partial(debug, prefix=prefix)
