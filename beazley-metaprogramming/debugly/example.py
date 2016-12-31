@@ -2,6 +2,58 @@
 
 from debugly import debug_simple, debug, debugargs, debugmethods, debugattr, debugmeta
 
+def about_types():
+    """
+    __Every type, in Python, is defined by a class__, see also Smalltalk's object model.
+
+    __The class is a callable that creates instances__
+    >>> obj = Mondo()
+    >>> isinstance(obj, Mondo)
+    True
+
+    __The class is the type of instances created__
+    >>> obj = Mondo()
+    >>> type(obj)
+    <class 'example.Mondo'>
+
+    __Classes are instances of types__
+    >>> int
+    <class 'int'>
+    >>> type(int)
+    <class 'type'>
+    >>> type(list)
+    <class 'type'>
+    >>> Grok
+    <class 'example.Grok'>
+    >>> type(Grok)
+    <class 'debugly.debugmeta'>
+
+    __Types are their own class (builtin):
+    class `type` creates new `type` objects and it is used when defining classes.
+    >>> type
+    <class 'type'>
+    >>> type(type)
+    <class 'type'>
+    
+    This `dict` serves as a local namespace for statements in the class body
+    >>> clsdict = type.__prepare__('Bayes', (Base,))
+    
+    Then, the class body is executed in the returned dict `clsdict`.
+    ```exec(body, globals(), clsdict)``` then populates `clsdict` with function defs.
+    
+    __Changing the `metaclass`__ 
+    that keyword argument sets the class used for creating the type (class)
+    we're defining: `class Spam(metaclass=type):...`; by default, it is set to `type`,
+    but you can change it to something else.
+
+    __Metaclasses propagates down hierarchies__
+    think of it as genetic mutation, in general a *function decorator* rewrites
+    a function, a *class decorator* rewrites a single class, a *metaclass*
+    rewrites a class hierarchy.
+
+    """
+    pass
+
 # Application of a simple decorator
 @debug_simple
 def add(x, y):
@@ -70,14 +122,18 @@ class Point:
         self.x = x
         self.y = y
 
-# Application of a metaclass
+# Application of a metaclass: this pattern allows us to `debug` all the classes
+# in the inheritance chain, having class `Base` as root, without attaching the
+# decorator `@debugmethods` to all subclasses.
 class Base(metaclass=debugmeta):
+
     def a(self):
         '''
         >>> Base().a()
         Base.a
         '''
         pass
+
     def b(self):
         '''
         >>> Base().b()
