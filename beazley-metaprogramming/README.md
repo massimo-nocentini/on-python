@@ -7,8 +7,8 @@ A tutorial presented at PyCon'13, March 14, 2013. Santa Clara, California.
 
 All the material is formely imported from http://www.dabeaz.com/py3meta/ which
 we consider our upstream; moreover, this is the companion video of the lecture
-http://pyvideo.org/pycon-us-2013/python-3-metaprogramming.html or
-https://www.youtube.com/watch?v=sPiWg5jSoZI&t=104s
+http://pyvideo.org/pycon-us-2013/python-3-metaprogramming.html (or
+https://www.youtube.com/watch?v=sPiWg5jSoZI&t=104s).
 
 ## Content guide
 
@@ -30,4 +30,11 @@ https://www.youtube.com/watch?v=sPiWg5jSoZI&t=104s
 `importly/`
     Importing structure definition files and generating
     code via import hooks.
+
+## Our contribution
+
+Our aim is to not enhance David's keynote; on the other hand, we augment and
+make little changes to be more confortable and to match our style. We add
+*comments*, mainly taken from David's presentation, and *doctests* in order to
+have a reproducible artifact that binds code with expected results.
 
