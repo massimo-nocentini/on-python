@@ -20,6 +20,10 @@ mark its checkbox in the list below:
 - [ ] __Python 3 Metaprogramming__ ([folder][project:metaprogramming])
   by _David Beazley_.
 
+# References
+
+Some bookkeeping of stuff we hit on:
+
 ## Official
 
 - [PEP 8 -- Style Guide for Python Code][pep8]
