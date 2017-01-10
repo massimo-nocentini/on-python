@@ -42,7 +42,10 @@ class Positive(Descriptor):
             raise ValueError('Expected >= 0')
         super().__set__(instance, value)
 
-# More specialized types
+# More specialized types: in the following subclasses, the derivation order
+# really matters because the `Positive` constraint could be enforced only if
+# the given value is at least an orderable object, in this case an `Integer`
+# typed object.
 class PosInteger(Integer, Positive):
     pass
 
