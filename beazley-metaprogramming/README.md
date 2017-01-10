@@ -31,7 +31,23 @@ https://www.youtube.com/watch?v=sPiWg5jSoZI&t=104s).
     Importing structure definition files and generating
     code via import hooks.
 
-## Our contribution
+## Refs
+
+The following list of refs we believe interesting readings:
+
+- decorators:
+  - http://blog.thedigitalcatonline.com/blog/2015/04/23/python-decorators-metaprogramming-with-style/#.WHSIU7YrJE7
+- descriptors:
+  - official:
+    - https://docs.python.org/3/howto/descriptor.html
+    - https://docs.python.org/3/library/functions.html#property
+    - https://www.python.org/download/releases/2.2.3/descrintro/#cooperation
+  - from web:
+    - https://www.blog.pythonlibrary.org/2016/06/10/python-201-what-are-descriptors/
+    - http://intermediatepythonista.com/classes-and-objects-ii-descriptors
+    - http://www.ibm.com/developerworks/library/os-pythondescriptors/
+
+# Our contribution
 
 Our aim is to not enhance David's keynote; on the other hand, we augment and
 make little changes to be more confortable and to match our style. We add
