@@ -19,7 +19,7 @@ mark its checkbox in the list below:
   by _A. Jesse Jiryu Davis_ and _Guido van Rossum_.
 - [ ] __Python 3 Metaprogramming__ ([folder][project:metaprogramming])
   by _David Beazley_.
-- [ ] __η-kanren__ ([folder][project:microkanren])
+- [ ] __μkanren__ ([folder][project:microkanren])
   by _Jason Hemann_ and _Daniel P. Friedman_.
 
 # References
