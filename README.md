@@ -19,7 +19,7 @@ mark its checkbox in the list below:
   by _A. Jesse Jiryu Davis_ and _Guido van Rossum_.
 - [ ] __Python 3 Metaprogramming__ ([folder][project:metaprogramming])
   by _David Beazley_.
-- [ ] __μkanren__ ([folder][project:microkanren])
+- [x] __μkanren__ ([folder][project:microkanren])
   by _Jason Hemann_ and _Daniel P. Friedman_.
 
 # References
@@ -59,4 +59,4 @@ Some bookkeeping of stuff we hit on:
 
 [project:web-crawler]:https://github.com/massimo-nocentini/on-python/tree/master/web-crawler
 [project:metaprogramming]:https://github.com/massimo-nocentini/on-python/tree/beazley-metaprogramming/beazley-metaprogramming
-[project:microkanren]:https://github.com/massimo-nocentini/on-python/tree/microkanren/microkanren
+[project:microkanren]:https://github.com/massimo-nocentini/on-python/tree/master/microkanren
