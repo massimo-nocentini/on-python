@@ -1,8 +1,9 @@
 
 import unittest
 
-from microkanren import *
-from sexp import *
+from muk.core import *
+from muk.ext import *
+from muk.sexp import *
 
 class microkanren_tests(unittest.TestCase):
 
@@ -11,8 +12,9 @@ class microkanren_tests(unittest.TestCase):
         def fives(x):
             return disj(unify(x, 5), fives(x))
         
-        with self.assertRaises(RecursionError), states_stream(fresh(fives)) as α:
-            next(α)
+        with self.assertRaises(RecursionError):
+            with states_stream(fresh(fives)) as α:
+                next(α)
 
     def test_infinte_recursion_guarded_refreshing(self):
 
@@ -96,8 +98,7 @@ class microkanren_tests(unittest.TestCase):
             return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
-        self.assertEqual(results, [[var(0), 4, var(1)]])
-        self.assertEqual(str(results[0]), '[v₀, 4, v₁]')
+        self.assertEqual(results, [[rvar(0), 4, rvar(1)]])
 
 
     def test_unify(self):
@@ -128,7 +129,21 @@ class microkanren_tests(unittest.TestCase):
                     conj(unify([3,[4,5],6], x + ([4, y], z)),
                          unify([x, y, z], w)))), [[3,5,[6]]])
 
+    def test_bounded(self):
 
+        def questiono(d):
+            with delimited(d) as D: 
+                def Q(q):
+                    return D(conde([unify('a', q), succeed],
+                                   [unify('b', q), succeed],
+                                   [unify('c', q), succeed],
+                                   else_clause=[fresh(lambda: Q(q))]))
+                return Q
+
+        self.assertEqual(run(fresh(questiono(d=1))), ['a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=2))), ['a', 'b', 'c', 'a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=3))), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=10)), n=4), ['a', 'b', 'c', 'a'])
 
 
 
