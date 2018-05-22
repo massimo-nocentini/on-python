@@ -22,6 +22,7 @@ mark its checkbox in the list below:
 - [x] __μkanren__ ([folder][project:microkanren])
   by _Jason Hemann_ and _Daniel P. Friedman_.
 - [x] __double dispatch__ ([folder][project:double-dispatch])
+  by _myself_.
 
 # References
 
