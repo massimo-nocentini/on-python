@@ -21,6 +21,7 @@ mark its checkbox in the list below:
   by _David Beazley_.
 - [x] __μkanren__ ([folder][project:microkanren])
   by _Jason Hemann_ and _Daniel P. Friedman_.
+- [x] __double dispatch__ ([folder][project:double-dispatch])
 
 # References
 
@@ -60,3 +61,4 @@ Some bookkeeping of stuff we hit on:
 [project:web-crawler]:https://github.com/massimo-nocentini/on-python/tree/master/web-crawler
 [project:metaprogramming]:https://github.com/massimo-nocentini/on-python/tree/beazley-metaprogramming/beazley-metaprogramming
 [project:microkanren]:https://github.com/massimo-nocentini/on-python/tree/master/microkanren
+[project:double-dispatch]:https://github.com/massimo-nocentini/on-python/tree/master/dispatching
