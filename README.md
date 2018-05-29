@@ -24,7 +24,7 @@ mark its checkbox in the list below:
 - [x] __double dispatch__ ([folder][project:double-dispatch])
   by _myself_.
 - [ ] __Functional Differential Geometry__ ([folder][project:fdg])
-  by _myself_.
+  by _Gerald Jay Sussman and Jack Wisdom_.
   - [x] *introduction* about Lagrangian function ([view][nb:fdg-intro])
 
 # References
