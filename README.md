@@ -23,6 +23,9 @@ mark its checkbox in the list below:
   by _Jason Hemann_ and _Daniel P. Friedman_.
 - [x] __double dispatch__ ([folder][project:double-dispatch])
   by _myself_.
+- [ ] __Functional Differential Geometry__ ([folder][project:fdg])
+  by _myself_.
+  - [x] *introduction* about Lagrangian function ([view][nb:fdg-intro])
 
 # References
 
@@ -63,3 +66,5 @@ Some bookkeeping of stuff we hit on:
 [project:metaprogramming]:https://github.com/massimo-nocentini/on-python/tree/beazley-metaprogramming/beazley-metaprogramming
 [project:microkanren]:https://github.com/massimo-nocentini/on-python/tree/master/microkanren
 [project:double-dispatch]:https://github.com/massimo-nocentini/on-python/tree/master/dispatching
+[project:fdg]:https://github.com/massimo-nocentini/on-python/tree/master/fdg
+[nb:fdg-intro]:http://nbviewer.jupyter.org/github/massimo-nocentini/on-python/blob/master/fdg/intro.ipynb
