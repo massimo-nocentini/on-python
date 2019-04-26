@@ -26,6 +26,8 @@ mark its checkbox in the list below:
 - [ ] __Functional Differential Geometry__ ([folder][project:fdg])
   by _Gerald Jay Sussman and Jack Wisdom_.
   - [x] *introduction* about Lagrangian function ([view][nb:fdg-intro])
+- [ ] __Greedy algorithms__ ([folder][project:greedys]) by _myself_.
+  - [x] *interval partitioning* 
 
 # References
 
@@ -68,3 +70,4 @@ Some bookkeeping of stuff we hit on:
 [project:double-dispatch]:https://github.com/massimo-nocentini/on-python/tree/master/dispatching
 [project:fdg]:https://github.com/massimo-nocentini/on-python/tree/master/fdg
 [nb:fdg-intro]:http://nbviewer.jupyter.org/github/massimo-nocentini/on-python/blob/master/fdg/intro.ipynb
+[project:greedys]:https://github.com/massimo-nocentini/on-python/tree/master/greedys
