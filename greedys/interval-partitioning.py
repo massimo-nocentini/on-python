@@ -19,8 +19,8 @@ jobs = [ # some overlapping jobs...
     job(13, 3, 16, 'J'),
 ] # every job ends at time 16.
 
-
 label = {J.name: {'M₀', 'M₁', 'M₂', 'M₃', 'M₄'} for J in jobs} # each job can be assigned to any machine, initially.
+label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
 label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
 label['D'] = {'M₁', 'M₂'} # job 'E' can be performed on the first machine only.
 
@@ -64,10 +64,21 @@ def run(prefix, jobs, machine, label):
 
         label[J.name] = L
     else:
-        assert len(machine) == len(ordering)
-        yield machine
+        assert len(machine) == len(prefix)
+        yield (machine, prefix)
 
-sols = list(run([], ordering, {}, label.copy())) # execute for side effects on the list `sols`.
+def sol_handler(sol):
+    
+    machine, prefix = sol
+    M = {m: [] for m in set(machine.values())}
+    for j, J in prefix:
+        M[machine[J.name]].append(J)
+    for k, v in M.items():
+        v.sort()
+    return M
+
+sols = sorted(run([], ordering, {}, label.copy()), 
+              key=len, reverse=True) # execute for side effects on the list `sols`.
 
 """
 print(
@@ -76,7 +87,11 @@ print(
              range(10)))) # show results.
 """
 
+"""
 for sol in reversed(list(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
                     key=lambda p: p[0]))): # show results.
     print(sol)
+"""
+for sol in map(sol_handler, sols):
+    print(sol, '\n')
 
