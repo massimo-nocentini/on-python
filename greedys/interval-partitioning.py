@@ -20,7 +20,7 @@ def children_repr(graph):
 
     return D
 
-def topological_sort(graph):
+def topological_sort(graph, key=len):
     """Topological sort.
 
     >>> G = {
@@ -43,12 +43,12 @@ def topological_sort(graph):
 
     for node, parents in graph.items():
         tiebreak = random.random()
-        priority = len(parents), tiebreak
+        priority = key(parents), tiebreak
         heapq.heappush(q, (priority, node))
 
     while q:
 
-        _, node = heapq.heappop(q)
+        zero, node = heapq.heappop(q)
 
         yield node
 
@@ -62,6 +62,46 @@ def topological_sort(graph):
                 q[i] = ((length - 1, tiebreak), child)
 
         heapq.heapify(q)
+
+def heapindex(q, item):
+    """
+
+    >>> import heapq
+    >>> q = list(reversed(range(10)))
+    >>> q
+    [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+    >>> heapq.heapify(q)
+    >>> q
+    [0, 1, 3, 2, 5, 4, 7, 9, 6, 8]
+    >>> heapindex(q, 4)
+    {5}
+    >>> list(map(lambda item: heapindex(q, item), q))
+    [{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}]
+
+    >>> q = [1,3,3,3,10,10,2,2,4]
+    >>> heapq.heapify(q)
+    >>> q
+    [1, 2, 2, 3, 10, 10, 3, 3, 4]
+    >>> list(map(lambda item: heapindex(q, item), [1,2,3,10,4]))
+    [{0}, {1, 2}, {3, 6, 7}, {4, 5}, {8}]
+
+    """
+
+    L = len(q)
+    P = set()
+    stack = [0]
+
+    while stack:
+        k = stack.pop()
+        if k >= L or q[k] > item:
+            continue
+        elif q[k] == item:
+            P.add(k)
+
+        stack.append(2*k+1)
+        stack.append(2*k+2)
+    
+    return P
 
 def by(jobs, prop_name):
     return dict(zip(map(attrgetter(prop_name), jobs), jobs))
