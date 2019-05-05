@@ -1,24 +1,23 @@
 
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-import heapq, random
+import heapq, random, functools
 
 random.seed(1 << 10)
 
 # ________________________________________________________________________________
 # Definitions
 
+class OrderableBunch(object):
+
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
+
+    def __lt__(self, other):
+        key = self.key
+        return key(self) < key(other)
+
 job = namedtuple('job', ['start_time', 'duration', 'deadline', 'name', 'deps']) # `name` in last position to use `<` on tuples for ordering.
-
-def children_repr(graph):
-
-    D = defaultdict(set)
-
-    for node, parents in graph.items():
-        for parent in parents:
-            D[parent].add(node) # revert the connections
-
-    return D
 
 def topological_sort(graph, key=len):
     """Topological sort.
@@ -37,33 +36,36 @@ def topological_sort(graph, key=len):
 
     """
 
-    rev_graph = children_repr(graph)
-
     q = [] # the priority queue
 
+    G = defaultdict(set) 
     for node, parents in graph.items():
-        tiebreak = random.random()
-        priority = key(parents), tiebreak
-        heapq.heappush(q, (priority, node))
+        v = OrderableBunch(priority=key(parents), value=node, key=attrgetter('priority'))
+        heapq.heappush(q, v)
+        for parent in parents:
+            G[parent].add(v)
 
     while q:
 
-        zero, node = heapq.heappop(q)
+        v = heapq.heappop(q) # some assertions on `priority`?
 
+        node = v.value
         yield node
 
-        children = rev_graph[node]
+        children = G[node]
 
         if not children: continue
 
-        for i in range(len(q)):
-            (length, tiebreak), child = q[i]
-            if child in children:
-                q[i] = ((length - 1, tiebreak), child)
+        for child in children:
+            #i = heapindex(q, child, select=min)
+            #q[i].priority -= 1
+            child.priority -= 1
 
         heapq.heapify(q)
 
-def heapindex(q, item):
+    
+
+def heapindex(q, item, select=lambda S: S):
     """
 
     >>> import heapq
@@ -98,10 +100,10 @@ def heapindex(q, item):
         elif q[k] == item:
             P.add(k)
 
-        stack.append(2*k+1)
         stack.append(2*k+2)
+        stack.append(2*k+1)
     
-    return P
+    return select(P)
 
 def by(jobs, prop_name):
     return dict(zip(map(attrgetter(prop_name), jobs), jobs))
@@ -168,49 +170,54 @@ def run(prefix, jobs, machine, label, busy=defaultdict(list)):
 # ________________________________________________________________________________
 # Problem instance
 
-jobs = [ # some overlapping jobs...
-    job(None, 3, 3, 'A', []),
-    job(None, 7, 7, 'B', []),
-    job(None, 3, 3, 'C', []),
-    job(None, 3, 10, 'D', []),
-    job(None, 6, 13, 'E', []),
-    job(None, 3, 12, 'F', []),
-    job(None, 3, 12, 'G', []),
-    job(None, 4, 16, 'H', []),
-    job(None, 3, 16, 'I', []),
-    job(None, 3, 16, 'J', []),
-] # every job ends at time 16.
+def liviotti():
+    jobs = [ # some overlapping jobs...
+        job(None, 3, 3, 'A', []),
+        job(None, 7, 7, 'B', []),
+        job(None, 3, 3, 'C', []),
+        job(None, 3, 10, 'D', []),
+        job(None, 6, 13, 'E', []),
+        job(None, 3, 12, 'F', []),
+        job(None, 3, 12, 'G', []),
+        job(None, 4, 16, 'H', []),
+        job(None, 3, 16, 'I', []),
+        job(None, 3, 16, 'J', []),
+    ] # every job ends at time 16.
 
-print('Topological sort of jobs:\n', ordering(jobs))
+    print('Topological sort of jobs:\n', ordering(jobs))
 
-label = {J.name: {'M₀', 'M₁', 'M₂', 'M₃', 'M₄'} for J in jobs} # each job can be assigned to any machine, initially.
-label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
-label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
-label['D'] = {'M₁', 'M₂'} # job 'E' can be performed on the first machine only.
+    label = {J.name: {'M₀', 'M₁', 'M₂', 'M₃', 'M₄'} for J in jobs} # each job can be assigned to any machine, initially.
+    label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
+    label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
+    label['D'] = {'M₁', 'M₂'} # job 'E' can be performed on the first machine only.
 
-busy = defaultdict(list)
-busy.update({
-    'M₀': [job(2, 3, None, 'cleaning', []), job(14, 1, None, 'sunday', [])],
-    'M₁': [job(5, 2, None, 'maintenance', [])],
-})
+    busy = defaultdict(list)
+    busy.update({
+        'M₀': [job(2, 3, None, 'cleaning', []), job(14, 1, None, 'sunday', [])],
+        'M₁': [job(5, 2, None, 'maintenance', [])],
+    })
 
 #sols = sorted(run([], ordering, {}, label.copy(), busy),
-              #key=len, reverse=True) # execute for side effects on the list `sols`.
+                  #key=len, reverse=True) # execute for side effects on the list `sols`.
 
-sols = run([], ordering(jobs), {}, label.copy(), busy)
+    sols = run([], ordering(jobs), {}, label.copy(), busy)
 
-"""
-print(
-    list(zip(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
-                    key=lambda p: p[0]),
-             range(10)))) # show results.
-"""
+    """
+    print(
+        list(zip(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
+                        key=lambda p: p[0]),
+                 range(10)))) # show results.
+    """
 
-"""
-for sol in reversed(list(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
-                    key=lambda p: p[0]))): # show results.
-    print(sol)
-"""
+    """
+    for sol in reversed(list(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
+                        key=lambda p: p[0]))): # show results.
+        print(sol)
+    """
+
+
+    for i, sol in zip(range(0), map(sol_handler, sols)):
+        print(sol, '\n')
 
 def sol_handler(sol):
 
@@ -222,8 +229,6 @@ def sol_handler(sol):
         v.sort()
     return M
 
-for i, sol in zip(range(0), map(sol_handler, sols)):
-    print(sol, '\n')
 
 def simple_test():
     """
