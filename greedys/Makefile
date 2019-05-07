@@ -1,3 +1,3 @@
 
 interval-partitioning:
-	python3.6 interval-partitioning.py 
+	python3 interval-partitioning.py 

@@ -11,6 +11,9 @@ random.seed(1 << 10)
 class OrderableBunch(object):
 
     def __init__(self, **kwds):
+        if 'key' not in kwds:
+            raise ValueError("The *key* parameter is mandatory for ordering")
+        
         self.__dict__.update(kwds)
 
     def __lt__(self, other):
@@ -40,7 +43,8 @@ def topological_sort(graph, key=len):
 
     G = defaultdict(set) 
     for node, parents in graph.items():
-        v = OrderableBunch(priority=key(parents), value=node, key=attrgetter('priority'))
+        v = OrderableBunch(priority=key(parents), value=node, 
+                           key=attrgetter('priority'))
         heapq.heappush(q, v)
         for parent in parents:
             G[parent].add(v)
@@ -76,29 +80,30 @@ def heapindex(q, item, select=lambda S: S):
     >>> q
     [0, 1, 3, 2, 5, 4, 7, 9, 6, 8]
     >>> heapindex(q, 4)
-    {5}
+    [5]
     >>> list(map(lambda item: heapindex(q, item), q))
-    [{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}]
+    [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]
 
     >>> q = [1,3,3,3,10,10,2,2,4]
     >>> heapq.heapify(q)
     >>> q
     [1, 2, 2, 3, 10, 10, 3, 3, 4]
     >>> list(map(lambda item: heapindex(q, item), [1,2,3,10,4]))
-    [{0}, {1, 2}, {3, 6, 7}, {4, 5}, {8}]
+    [[0], [1, 2], [3, 7, 6], [4, 5], [8]]
 
     """
 
     L = len(q)
-    P = set()
+    P = []
     stack = [0]
 
     while stack:
         k = stack.pop()
         if k >= L or q[k] > item:
             continue
-        elif q[k] == item:
-            P.add(k)
+        
+        if q[k] == item:
+            P.append(k)
 
         stack.append(2*k+2)
         stack.append(2*k+1)
@@ -118,9 +123,9 @@ def ontime(J):
     return finish_time(J) <= J.deadline
 
 def ordering(jobs):
-    jobs_by_name = by(jobs, 'name')
-    deps_graph = {J.name: set(J.deps) for J in jobs}
+    deps_graph = {J.name: J.deps for J in jobs}
     DAG = topological_sort(deps_graph)
+    jobs_by_name = by(jobs, 'name')
     return [jobs_by_name[job_name] for job_name in DAG]
 
 def run(prefix, jobs, machine, label, busy=defaultdict(list)):
@@ -136,16 +141,15 @@ def run(prefix, jobs, machine, label, busy=defaultdict(list)):
             return finish_time(J)
 
         at_least = max(map(ready_time, J_clean.deps), default=0)
-        for st in range(at_least, J_clean.deadline - J_clean.duration + 1):
+        for st in range(max(at_least, J_clean.start_time or 0), 
+                        J_clean.deadline - J_clean.duration + 1):
 
             J = J_clean._replace(start_time=st)
-            #print('attempt to start job {} at {}'.format(J.name, J.start_time))
 
             L = label[J.name].copy()
 
-            for I in prefix: # O(n^2) complexity because of the last job; btw, preprocess of overlappings may help to check only those ones, getting a linear time.
-                if overlaps(I, J):
-                    label[J.name] -= {machine[I.name]} # remove the machine on which job `I` is allocated for possibilities about job `J`.
+            for I in filter(functools.partial(overlaps, J=J), prefix): # O(n^2) complexity because of the last job; btw, preprocess of overlappings may help to check only those ones, getting a linear time.
+                label[J.name] -= {machine[I.name]} # remove the machine on which job `I` is allocated for possibilities about job `J`.
 
             for l in label[J.name]:
 
@@ -172,9 +176,9 @@ def run(prefix, jobs, machine, label, busy=defaultdict(list)):
 
 def liviotti():
     jobs = [ # some overlapping jobs...
-        job(None, 3, 3, 'A', []),
-        job(None, 7, 7, 'B', []),
-        job(None, 3, 3, 'C', []),
+        job(None, 3, 3, 'A',  []),
+        job(None, 7, 7, 'B',  []),
+        job(None, 3, 3, 'C',  []),
         job(None, 3, 10, 'D', []),
         job(None, 6, 13, 'E', []),
         job(None, 3, 12, 'F', []),
@@ -240,8 +244,11 @@ def simple_test():
 
     >>> jobs = [job(None, 3, 6, 'A', [])]
     >>> sols = run([], ordering(jobs), {}, {'A':['M₀']})
-    >>> list(map(sol_handler, sols))
-    [{'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])]}, {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])]}, {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])]}, {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])]}]
+    >>> list(map(sol_handler, sols)) # doctest: +NORMALIZE_WHITESPACE
+    [{'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])]}, 
+     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])]}, 
+     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])]}, 
+     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])]}]
 
     >>> jobs.append(job(None, 3, 10, 'B', ['A']))
     >>> sols = run([], ordering(jobs), {}, {'A':['M₀'], 'B':['M₀', 'M₁']})
