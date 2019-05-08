@@ -170,6 +170,15 @@ def run(prefix, jobs, machine, label, busy=defaultdict(list)):
         assert all(map(lambda J: J.start_time is not None, prefix))
         yield (machine, prefix)
 
+def sol_handler(sol):
+
+    machine, prefix = sol
+    M = {m: [] for m in set(machine.values())}
+    for J in prefix:
+        M[machine[J.name]].append(J)
+    for k, v in M.items():
+        v.sort()
+    return M
 
 # ________________________________________________________________________________
 # Problem instance
@@ -223,15 +232,6 @@ def liviotti():
     for i, sol in zip(range(0), map(sol_handler, sols)):
         print(sol, '\n')
 
-def sol_handler(sol):
-
-    machine, prefix = sol
-    M = {m: [] for m in set(machine.values())}
-    for J in prefix:
-        M[machine[J.name]].append(J)
-    for k, v in M.items():
-        v.sort()
-    return M
 
 
 def simple_test():
@@ -242,11 +242,10 @@ def simple_test():
     >>> list(map(sol_handler, sols))
     [{'M₀': [job(start_time=0, duration=3, deadline=3, name='A', deps=[])]}]
 
-    >>> jobs = [job(None, 3, 6, 'A', [])]
+    >>> jobs = [job(1, 3, 6, 'A', [])]
     >>> sols = run([], ordering(jobs), {}, {'A':['M₀']})
     >>> list(map(sol_handler, sols)) # doctest: +NORMALIZE_WHITESPACE
-    [{'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])]}, 
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])]}, 
+    [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])]}, 
      {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])]}, 
      {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])]}]
 
