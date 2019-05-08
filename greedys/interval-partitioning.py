@@ -20,7 +20,8 @@ class OrderableBunch(object):
         key = self.key
         return key(self) < key(other)
 
-job = namedtuple('job', ['start_time', 'duration', 'deadline', 'name', 'deps']) # `name` in last position to use `<` on tuples for ordering.
+job = namedtuple('job', ['start_time', 'duration', 'deadline', 'name']) 
+dep = namedtuple('dep', ['name', 'jitter'])
 
 def topological_sort(graph, key=len):
     """Topological sort.
@@ -61,16 +62,13 @@ def topological_sort(graph, key=len):
         if not children: continue
 
         for child in children:
-            #i = heapindex(q, child, select=min)
-            #q[i].priority -= 1
-            child.priority -= 1
+            child.priority -= 1 # no need to use `heapindex` because we reference children directly.
 
         heapq.heapify(q)
 
-    
 
-def heapindex(q, item, select=lambda S: S):
-    """
+def heapindex(q, item):
+    """A generator of positions in which `item` occurs in `q`, in O(log n) time where n is `len(q)`.
 
     >>> import heapq
     >>> q = list(reversed(range(10)))
@@ -79,36 +77,33 @@ def heapindex(q, item, select=lambda S: S):
     >>> heapq.heapify(q)
     >>> q
     [0, 1, 3, 2, 5, 4, 7, 9, 6, 8]
-    >>> heapindex(q, 4)
+    >>> list(heapindex(q, 4))
     [5]
-    >>> list(map(lambda item: heapindex(q, item), q))
-    [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]
-
+    >>> list(map(lambda item: min(heapindex(q, item)), q))
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     >>> q = [1,3,3,3,10,10,2,2,4]
     >>> heapq.heapify(q)
     >>> q
     [1, 2, 2, 3, 10, 10, 3, 3, 4]
-    >>> list(map(lambda item: heapindex(q, item), [1,2,3,10,4]))
+    >>> list(map(lambda item: list(heapindex(q, item)), [1,2,3,10,4]))
     [[0], [1, 2], [3, 7, 6], [4, 5], [8]]
 
     """
 
     L = len(q)
-    P = []
     stack = [0]
 
     while stack:
         k = stack.pop()
+        
         if k >= L or q[k] > item:
             continue
         
         if q[k] == item:
-            P.append(k)
+            yield k
 
         stack.append(2*k+2)
         stack.append(2*k+1)
-    
-    return select(P)
 
 def by(jobs, prop_name):
     return dict(zip(map(attrgetter(prop_name), jobs), jobs))
@@ -122,25 +117,27 @@ def overlaps(I, J):
 def ontime(J):
     return finish_time(J) <= J.deadline
 
-def ordering(jobs):
-    deps_graph = {J.name: J.deps for J in jobs}
+def ordering(jobs, deps):
+    deps_graph = {J.name: [d.name for d in deps[J.name]] for J in jobs}
     DAG = topological_sort(deps_graph)
     jobs_by_name = by(jobs, 'name')
     return [jobs_by_name[job_name] for job_name in DAG]
 
-def run(prefix, jobs, machine, label, busy=defaultdict(list)):
+def run(prefix, graph, machine, label, busy=defaultdict(list)):
+
+    jobs, deps = graph # unpacking.
 
     if jobs: # still jobs to allocate.
 
         J_clean, *Js = jobs # unpacking.
         prefix_by_name = by(prefix, 'name')
 
-        def ready_time(name):
-            J = prefix_by_name[name]
-            assert J.start_time is not None
-            return finish_time(J)
+        def ready_time(dp): # `dp` stands for `dependency`.
+            D = prefix_by_name[dp.name]
+            assert D.start_time is not None and D.name == dp.name
+            return finish_time(D) if dp.jitter is None else (dp.jitter > 0 and D.start_time + dp.jitter)
 
-        at_least = max(map(ready_time, J_clean.deps), default=0)
+        at_least = max(map(ready_time, deps[J_clean.name]), default=0)
         for st in range(max(at_least, J_clean.start_time or 0), 
                         J_clean.deadline - J_clean.duration + 1):
 
@@ -162,7 +159,7 @@ def run(prefix, jobs, machine, label, busy=defaultdict(list)):
 
                 if ontime(J_delayed):
                     machine[J.name] = l # an attempt to allocate job `J` on machine `l`.
-                    yield from run([J_delayed] + prefix, Js, machine.copy(), label, busy)
+                    yield from run([J_delayed] + prefix, (Js, deps), machine.copy(), label, busy)
 
             label[J.name] = L
     else:
@@ -185,19 +182,21 @@ def sol_handler(sol):
 
 def liviotti():
     jobs = [ # some overlapping jobs...
-        job(None, 3, 3, 'A',  []),
-        job(None, 7, 7, 'B',  []),
-        job(None, 3, 3, 'C',  []),
-        job(None, 3, 10, 'D', []),
-        job(None, 6, 13, 'E', []),
-        job(None, 3, 12, 'F', []),
-        job(None, 3, 12, 'G', []),
-        job(None, 4, 16, 'H', []),
-        job(None, 3, 16, 'I', []),
-        job(None, 3, 16, 'J', []),
+        job(None, 3, 3, 'A' ),
+        job(None, 7, 7, 'B' ),
+        job(None, 3, 3, 'C' ),
+        job(None, 3, 10, 'D'),
+        job(None, 6, 13, 'E'),
+        job(None, 3, 12, 'F'),
+        job(None, 3, 12, 'G'),
+        job(None, 4, 16, 'H'),
+        job(None, 3, 16, 'I'),
+        job(None, 3, 16, 'J'),
     ] # every job ends at time 16.
 
-    print('Topological sort of jobs:\n', ordering(jobs))
+    deps = defaultdict(list)
+
+    print('Topological sort of jobs:\n', ordering(jobs, deps))
 
     label = {J.name: {'M₀', 'M₁', 'M₂', 'M₃', 'M₄'} for J in jobs} # each job can be assigned to any machine, initially.
     label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
@@ -206,14 +205,12 @@ def liviotti():
 
     busy = defaultdict(list)
     busy.update({
-        'M₀': [job(2, 3, None, 'cleaning', []), job(14, 1, None, 'sunday', [])],
-        'M₁': [job(5, 2, None, 'maintenance', [])],
+        'M₀': [job(2, 3, None, 'cleaning'), 
+               job(14, 1, None, 'sunday')],
+        'M₁': [job(5, 2, None, 'maintenance')],
     })
 
-#sols = sorted(run([], ordering, {}, label.copy(), busy),
-                  #key=len, reverse=True) # execute for side effects on the list `sols`.
-
-    sols = run([], ordering(jobs), {}, label.copy(), busy)
+    sols = run([], (ordering(jobs, deps), deps), {}, label.copy(), busy)
 
     """
     print(
@@ -237,49 +234,92 @@ def liviotti():
 def simple_test():
     """
 
-    >>> jobs = [job(None, 3, 3, 'A', [])]
-    >>> sols = run([], ordering(jobs), {}, {'A':['M₀']})
+    >>> jobs = [job(None, 3, 3, 'A')]
+    >>> deps = defaultdict(list)
+    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}})
     >>> list(map(sol_handler, sols))
-    [{'M₀': [job(start_time=0, duration=3, deadline=3, name='A', deps=[])]}]
+    [{'M₀': [job(start_time=0, duration=3, deadline=3, name='A')]}]
 
-    >>> jobs = [job(1, 3, 6, 'A', [])]
-    >>> sols = run([], ordering(jobs), {}, {'A':['M₀']})
+    >>> jobs = [job(1, 3, 6, 'A')]
+    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}})
     >>> list(map(sol_handler, sols)) # doctest: +NORMALIZE_WHITESPACE
-    [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])]}, 
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])]}, 
-     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])]}]
+    [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}]
 
-    >>> jobs.append(job(None, 3, 10, 'B', ['A']))
-    >>> sols = run([], ordering(jobs), {}, {'A':['M₀'], 'B':['M₀', 'M₁']})
+    >>> jobs.append(job(None, 3, 10, 'B'))
+    >>> deps['B'] = [dep(name='A', jitter=None)]
+    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}, 'B':{'M₀', 'M₁'}})
     >>> list(sorted(map(sol_handler, sols), key=len)) # doctest: +NORMALIZE_WHITESPACE
-    [{'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[]), job(start_time=3, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[]), job(start_time=4, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[]), job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[]), job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[]), job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[]), job(start_time=4, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[]), job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[]), job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[]), job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[]), job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[]), job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[]), job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[]), job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[]), job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=3, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=4, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=0, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=4, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=5, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=6, duration=3, deadline=10, name='B', deps=['A'])]},
-     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A', deps=[])], 'M₁': [job(start_time=7, duration=3, deadline=10, name='B', deps=['A'])]}]
+    [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A'), 
+             job(start_time=4, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A'), 
+             job(start_time=5, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A'), 
+             job(start_time=6, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=1, duration=3, deadline=6, name='A'), 
+             job(start_time=7, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A'), 
+             job(start_time=5, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A'), 
+             job(start_time=6, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=2, duration=3, deadline=6, name='A'), 
+             job(start_time=7, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A'), 
+             job(start_time=6, duration=3, deadline=10, name='B')]}, 
+     {'M₀': [job(start_time=3, duration=3, deadline=6, name='A'), 
+             job(start_time=7, duration=3, deadline=10, name='B')]}, 
+     {'M₁': [job(start_time=4, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=5, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=5, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}]
+    >>> deps['B'] = [dep(name='A', jitter=1)]
+    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}, 'B':{'M₁'}})
+    >>> list(sorted(map(sol_handler, sols), key=len)) # doctest: +NORMALIZE_WHITESPACE
+    [{'M₁': [job(start_time=2, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=3, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=4, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=5, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=3, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=4, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=5, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=4, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=5, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=6, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}, 
+     {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
+      'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}]
 
     """
     pass
