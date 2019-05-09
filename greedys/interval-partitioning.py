@@ -1,7 +1,7 @@
 
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-import heapq, functools
+import heapq, functools, itertools, math
 
 # ________________________________________________________________________________
 # Topological sort and `heapindex` funtion.
@@ -156,8 +156,12 @@ def run(graph, label, busy=defaultdict(list)):
                 return rt
 
             at_least = max(map(ready_time, deps[J_clean.name]), default=0)
-            for st in range(max(at_least, J_clean.start_time or 0), 
-                            J_clean.deadline - J_clean.duration + 1):
+            for st in itertools.count(max(at_least, J_clean.start_time or 0)):
+                            #min(J_clean.deadline - J_clean.duration,
+                                #max(map(attrgetter('duration'), jobs))) + 1):
+
+                if J_clean.deadline is not math.inf and st > J_clean.deadline - J_clean.duration:
+                    break
 
                 J = J_clean._replace(start_time=st)
 
@@ -171,7 +175,8 @@ def run(graph, label, busy=defaultdict(list)):
                     J_delayed = J
                     for B in busy[l]:
                         if overlaps(J_delayed, B):
-                            J_delayed = J_delayed._replace(duration=J_delayed.duration + B.duration)
+                            d = J_delayed.duration + B.duration
+                            J_delayed = J_delayed._replace(duration=d)
                         else:
                             break # assuming busy jobs are ordered too.
 
@@ -197,57 +202,67 @@ def sol_handler(sol):
         v.sort()
     return M
 
+def roassal(sol):
+    return ['#({} {} {} {})'.format(machine, J.start_time, finish_time(J), J.name)
+            for machine, jobs in sol.items() for J in jobs]
+            
 # ________________________________________________________________________________
 # Problem instance
 
 def liviotti():
-    jobs = [ # some overlapping jobs...
-        job(None, 3, 3, 'A' ),
-        job(None, 7, 7, 'B' ),
-        job(None, 3, 3, 'C' ),
-        job(None, 3, 10, 'D'),
-        job(None, 6, 13, 'E'),
-        job(None, 3, 12, 'F'),
-        job(None, 3, 12, 'G'),
-        job(None, 4, 16, 'H'),
-        job(None, 3, 16, 'I'),
-        job(None, 3, 16, 'J'),
-    ] # every job ends at time 16.
+
+    import random
+
+    random.seed(1 << 5)     # to reproduce the same values all the times.
+
+    params = dict(required_jobs=50, max_duration=10, children_bounds=(5, 10))    # generation parameters.
+    
+    jobs = [job(start_time=None,
+                duration=random.randint(1, params['max_duration']),
+                deadline=math.inf,  # for now every job can be allocated without 
+                                    # time constraint, just schedule all of them.
+                name=str(j))#chr(ord('A') + j)) 
+            for j in range(params['required_jobs'])]
 
     deps = defaultdict(list)
 
-    print('Topological sort of jobs:\n', ordering(jobs, deps))
+    children = []
+    for J in jobs:
+        for c in range(random.randint(*params['children_bounds'])):
+            C = J._replace(name=J.name + '_' + str(c), 
+                           duration=random.randint(1, params['max_duration']))
+            children.append(C)  # register `C` as a new job.
+            deps[C.name] = [dep(name=J.name, jitter=None)]  # `J` is parent of `C`
+            J = C   # `C` becomes the new parent for future children.
+    jobs.extend(children)
 
-    label = {J.name: {'M₀', 'M₁', 'M₂', 'M₃', 'M₄'} for J in jobs} # each job can be assigned to any machine, initially.
-    label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
-    label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
-    label['D'] = {'M₁', 'M₂'} # job 'E' can be performed on the first machine only.
+    machines = set(map(lambda m: 'M_' + chr(ord('0') + m), range(min(len(jobs), 15))))   # at least each job goes to its machine.
+    label = {J.name: machines.copy() for J in jobs} # each job can be assigned to any machine, initially.
+    #label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
+    #label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
+    #label['D'] = {'M₁', 'M₂'} # job 'E' can be performed on the first machine only.
 
+    """
     busy = defaultdict(list)
     busy.update({
         'M₀': [job(2, 3, None, 'cleaning'), 
                job(14, 1, None, 'sunday')],
         'M₁': [job(5, 2, None, 'maintenance')],
     })
+    """
+    busy = {machine: [job(i, 1, None, 'sunday') for i in range(7, 1000, 7)] 
+            for machine in machines}
 
+    print('Summary:\n=======\nJobs ({}): {}\nDeps: {}\n'.format(
+            len(jobs), jobs, deps))
+    
     sols = run((ordering(jobs, deps), deps), label.copy(), busy)
 
-    """
-    print(
-        list(zip(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
-                        key=lambda p: p[0]),
-                 range(10)))) # show results.
-    """
-
-    """
-    for sol in reversed(list(sorted(map(lambda sol: (len(set(sol.values())), sol), sols),
-                        key=lambda p: p[0]))): # show results.
-        print(sol)
-    """
-
-
-    for i, sol in zip(range(0), map(sol_handler, sols)):
-        print(sol, '\n')
+    print()
+    for i, sol in zip(range(1), map(sol_handler, sols)):
+    #for sol in map(sol_handler, sols):
+        print('#({})'.format(' '.join(roassal(sol))), '\n')
+    
 
 
 
@@ -260,7 +275,7 @@ def simple_test():
     >>> list(map(sol_handler, sols))
     [{'M₀': [job(start_time=0, duration=3, deadline=3, name='A')]}]
 
-    >>> jobs = [job(1, 3, 6, 'A')]
+    >>> jobs = [job(1, 3, 6, 'A')] # if we put 8 as a deadline we should obtain allocations upto 4.
     >>> sols = run((ordering(jobs, deps), deps), {'A':{'M₀'}})
     >>> list(map(sol_handler, sols)) # doctest: +NORMALIZE_WHITESPACE
     [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
@@ -344,3 +359,4 @@ def simple_test():
     """
     pass
 
+liviotti()
