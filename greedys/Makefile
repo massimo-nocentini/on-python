@@ -1,3 +1,3 @@
 
 interval-partitioning:
-	python3 interval-partitioning.py 
+	python3 -m doctest interval-partitioning.py 

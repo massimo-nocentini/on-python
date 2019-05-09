@@ -1,12 +1,10 @@
 
 from collections import namedtuple, defaultdict
 from operator import attrgetter
-import heapq, random, functools
-
-random.seed(1 << 10)
+import heapq, functools
 
 # ________________________________________________________________________________
-# Definitions
+# Topological sort and `heapindex` funtion.
 
 class OrderableBunch(object):
 
@@ -20,10 +18,7 @@ class OrderableBunch(object):
         key = self.key
         return key(self) < key(other)
 
-job = namedtuple('job', ['start_time', 'duration', 'deadline', 'name']) 
-dep = namedtuple('dep', ['name', 'jitter'])
-
-def topological_sort(graph, key=len):
+def topological_sort(graph, key_spec=(len, 0)):
     """Topological sort.
 
     >>> G = {
@@ -40,31 +35,39 @@ def topological_sort(graph, key=len):
 
     """
 
-    q = [] # the priority queue
+    key, check = key_spec # unpacking the spec for the priority rank function.
 
-    G = defaultdict(set) 
+    q = [] # the priority queue.
+
+    G = defaultdict(set)    # The "usual" adjacency list representation of a graph;
+                            # btw, `set` is used as fallback ctor because of a fast
+                            # lookup in the forthcoming expression `children = G[node]`.
+
     for node, parents in graph.items():
-        v = OrderableBunch(priority=key(parents), value=node, 
-                           key=attrgetter('priority'))
-        heapq.heappush(q, v)
-        for parent in parents:
-            G[parent].add(v)
+        v = OrderableBunch(priority=key(parents), value=node, # the priority of each node depends on the rank of their `parents`. 
+                           key=attrgetter('priority')) # the newly OrderableBunch obj uses `priority` as key in the heapq.
+        heapq.heappush(q, v) # push it into the queue mantaining the heap invariant.
+        for parent in parents:  # For each parent of `node`, the loop records
+            G[parent].add(v)    # this forward connection augmenting the graph `G`.
 
     while q:
 
-        v = heapq.heappop(q) # some assertions on `priority`?
+        v = heapq.heappop(q)        # It extracts the next value with higher priority
+        assert v.priority == check  # and it checks that its priority is consistent wrt `key`.
 
-        node = v.value
-        yield node
+        node = v.value  # Simple unpacking.
 
-        children = G[node]
+        yield node  # A new record for the generator.
 
-        if not children: continue
+        children = G[node]  # Fast lookup because G's values are `set` objects.
 
-        for child in children:
-            child.priority -= 1 # no need to use `heapindex` because we reference children directly.
+        if not children: continue   # Noop.
 
-        heapq.heapify(q)
+        for child in children:      # No need to use `heapindex` because we 
+            child.priority -= 1     # reference OrderableBunch objs directly.
+                                
+
+        heapq.heapify(q)    # Restore the heap invariant in *linear time*.
 
 
 def heapindex(q, item):
@@ -90,20 +93,27 @@ def heapindex(q, item):
 
     """
 
-    L = len(q)
-    stack = [0]
+    L = len(q)  # Simple upper bound for indexes.
+    stack = [0] # Start with the position of the highest-priority obj.
 
-    while stack:
-        k = stack.pop()
+    while stack:    # Implement a recursive process by using a stack.
+        k = stack.pop() # Handle the next position
         
-        if k >= L or q[k] > item:
+        if k >= L or q[k] > item: # Outbound or greater than the desired item.
             continue
         
-        if q[k] == item:
+        if q[k] == item:    # Good, remember `k` as a position where `item` lies.
             yield k
 
-        stack.append(2*k+2)
-        stack.append(2*k+1)
+        stack.append(2*k+2) # According the the heapq's invariant, it proceeds
+        stack.append(2*k+1) # in a logarithmic way.
+
+
+# ________________________________________________________________________________
+# Domain-specific Definitions.
+
+job = namedtuple('job', ['start_time', 'duration', 'deadline', 'name']) 
+dep = namedtuple('dep', ['name', 'jitter'])
 
 def by(jobs, prop_name):
     return dict(zip(map(attrgetter(prop_name), jobs), jobs))
@@ -123,49 +133,59 @@ def ordering(jobs, deps):
     jobs_by_name = by(jobs, 'name')
     return [jobs_by_name[job_name] for job_name in DAG]
 
-def run(prefix, graph, machine, label, busy=defaultdict(list)):
+def run(graph, label, busy=defaultdict(list)):
 
     jobs, deps = graph # unpacking.
 
-    if jobs: # still jobs to allocate.
+    def R(prefix, jobs, machine, label):
 
-        J_clean, *Js = jobs # unpacking.
-        prefix_by_name = by(prefix, 'name')
+        if jobs: # still jobs to allocate.
 
-        def ready_time(dp): # `dp` stands for `dependency`.
-            D = prefix_by_name[dp.name]
-            assert D.start_time is not None and D.name == dp.name
-            return finish_time(D) if dp.jitter is None else (dp.jitter > 0 and D.start_time + dp.jitter)
+            J_clean, *Js = jobs # unpacking.
+            prefix_by_name = by(prefix, 'name')
 
-        at_least = max(map(ready_time, deps[J_clean.name]), default=0)
-        for st in range(max(at_least, J_clean.start_time or 0), 
-                        J_clean.deadline - J_clean.duration + 1):
+            def ready_time(dp): # `dp` stands for `dependency`.
+                D = prefix_by_name[dp.name]
+                assert D.start_time is not None and D.name == dp.name
+                rt = None
+                if dp.jitter is None:
+                    rt = finish_time(D)
+                else:
+                    assert dp.jitter > 0
+                    rt = D.start_time + dp.jitter
+                return rt
 
-            J = J_clean._replace(start_time=st)
+            at_least = max(map(ready_time, deps[J_clean.name]), default=0)
+            for st in range(max(at_least, J_clean.start_time or 0), 
+                            J_clean.deadline - J_clean.duration + 1):
 
-            L = label[J.name].copy()
+                J = J_clean._replace(start_time=st)
 
-            for I in filter(functools.partial(overlaps, J=J), prefix): # O(n^2) complexity because of the last job; btw, preprocess of overlappings may help to check only those ones, getting a linear time.
-                label[J.name] -= {machine[I.name]} # remove the machine on which job `I` is allocated for possibilities about job `J`.
+                L = label[J.name].copy()
 
-            for l in label[J.name]:
+                for I in filter(functools.partial(overlaps, J=J), prefix): # O(n^2) complexity because of the last job; btw, preprocess of overlappings may help to check only those ones, getting a linear time.
+                    label[J.name] -= {machine[I.name]} # remove the machine on which job `I` is allocated for possibilities about job `J`.
 
-                J_delayed = J
-                for B in busy[l]:
-                    if overlaps(J_delayed, B):
-                        J_delayed = J_delayed._replace(duration=J_delayed.duration + B.duration)
-                    else:
-                        break # assuming busy jobs are ordered too.
+                for l in label[J.name]:
 
-                if ontime(J_delayed):
-                    machine[J.name] = l # an attempt to allocate job `J` on machine `l`.
-                    yield from run([J_delayed] + prefix, (Js, deps), machine.copy(), label, busy)
+                    J_delayed = J
+                    for B in busy[l]:
+                        if overlaps(J_delayed, B):
+                            J_delayed = J_delayed._replace(duration=J_delayed.duration + B.duration)
+                        else:
+                            break # assuming busy jobs are ordered too.
 
-            label[J.name] = L
-    else:
-        assert len(machine) == len(prefix)
-        assert all(map(lambda J: J.start_time is not None, prefix))
-        yield (machine, prefix)
+                    if ontime(J_delayed):
+                        machine[J.name] = l # an attempt to allocate job `J` on machine `l`.
+                        yield from R([J_delayed] + prefix, Js, machine.copy(), label)
+
+                label[J.name] = L
+        else:
+            assert len(machine) == len(prefix)
+            assert all(map(lambda J: J.start_time is not None, prefix))
+            yield (machine, prefix)
+
+    return R([], jobs, {}, label.copy())
 
 def sol_handler(sol):
 
@@ -210,7 +230,7 @@ def liviotti():
         'M₁': [job(5, 2, None, 'maintenance')],
     })
 
-    sols = run([], (ordering(jobs, deps), deps), {}, label.copy(), busy)
+    sols = run((ordering(jobs, deps), deps), label.copy(), busy)
 
     """
     print(
@@ -236,12 +256,12 @@ def simple_test():
 
     >>> jobs = [job(None, 3, 3, 'A')]
     >>> deps = defaultdict(list)
-    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}})
+    >>> sols = run((ordering(jobs, deps), deps), {'A':{'M₀'}})
     >>> list(map(sol_handler, sols))
     [{'M₀': [job(start_time=0, duration=3, deadline=3, name='A')]}]
 
     >>> jobs = [job(1, 3, 6, 'A')]
-    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}})
+    >>> sols = run((ordering(jobs, deps), deps), {'A':{'M₀'}})
     >>> list(map(sol_handler, sols)) # doctest: +NORMALIZE_WHITESPACE
     [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
      {'M₀': [job(start_time=2, duration=3, deadline=6, name='A')]}, 
@@ -249,7 +269,7 @@ def simple_test():
 
     >>> jobs.append(job(None, 3, 10, 'B'))
     >>> deps['B'] = [dep(name='A', jitter=None)]
-    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}, 'B':{'M₀', 'M₁'}})
+    >>> sols = run((ordering(jobs, deps), deps), {'A':{'M₀'}, 'B':{'M₀', 'M₁'}})
     >>> list(sorted(map(sol_handler, sols), key=len)) # doctest: +NORMALIZE_WHITESPACE
     [{'M₀': [job(start_time=1, duration=3, deadline=6, name='A'), 
              job(start_time=4, duration=3, deadline=10, name='B')]}, 
@@ -288,7 +308,7 @@ def simple_test():
      {'M₁': [job(start_time=7, duration=3, deadline=10, name='B')], 
       'M₀': [job(start_time=3, duration=3, deadline=6, name='A')]}]
     >>> deps['B'] = [dep(name='A', jitter=1)]
-    >>> sols = run([], (ordering(jobs, deps), deps), {}, {'A':{'M₀'}, 'B':{'M₁'}})
+    >>> sols = run((ordering(jobs, deps), deps), {'A':{'M₀'}, 'B':{'M₁'}})
     >>> list(sorted(map(sol_handler, sols), key=len)) # doctest: +NORMALIZE_WHITESPACE
     [{'M₁': [job(start_time=2, duration=3, deadline=10, name='B')], 
       'M₀': [job(start_time=1, duration=3, deadline=6, name='A')]}, 
