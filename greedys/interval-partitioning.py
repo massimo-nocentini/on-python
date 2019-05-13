@@ -160,7 +160,7 @@ def run(graph, label, busy=defaultdict(list)):
                             #min(J_clean.deadline - J_clean.duration,
                                 #max(map(attrgetter('duration'), jobs))) + 1):
 
-                if J_clean.deadline is not math.inf and st > J_clean.deadline - J_clean.duration:
+                if J_clean.deadline is not math.inf and st + J_clean.duration > J_clean.deadline:
                     break
 
                 J = J_clean._replace(start_time=st)
@@ -215,7 +215,7 @@ def liviotti():
 
     random.seed(1 << 5)     # to reproduce the same values all the times.
 
-    params = dict(required_jobs=50, max_duration=10, children_bounds=(5, 10))    # generation parameters.
+    params = dict(required_jobs=50, max_duration=10, children_bounds=(5, 10), available_machines=10)    # generation parameters.
     
     jobs = [job(start_time=None,
                 duration=random.randint(1, params['max_duration']),
@@ -236,7 +236,7 @@ def liviotti():
             J = C   # `C` becomes the new parent for future children.
     jobs.extend(children)
 
-    machines = set(map(lambda m: 'M_' + chr(ord('0') + m), range(min(len(jobs), 15))))   # at least each job goes to its machine.
+    machines = set(map(str, range(params['available_machines'])))   # at least each job goes to its machine.
     label = {J.name: machines.copy() for J in jobs} # each job can be assigned to any machine, initially.
     #label['A'] = {'M₃'} # job 'E' can be performed on the first machine only.
     #label['E'] = {'M₀'} # job 'E' can be performed on the first machine only.
