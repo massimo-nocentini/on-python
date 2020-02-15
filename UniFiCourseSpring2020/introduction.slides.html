@@ -13271,7 +13271,7 @@ A (very concise) introduction to the Python ecosystem.
 </div></section></section><section><section>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">this</span>
@@ -13323,7 +13323,7 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>From <a href="https://en.wikipedia.org/wiki/Python_(programming_language">https://en.wikipedia.org/wiki/Python_(programming_language</a>)</p>
+<h1 id="past-and-present">past and present<a class="anchor-link" href="#past-and-present">&#182;</a></h1><p>From <a href="https://en.wikipedia.org/wiki/Python_(programming_language">https://en.wikipedia.org/wiki/Python_(programming_language</a>)</p>
 <ul>
 <li>Python is an interpreted, high-level, general-purpose programming language. Created by Guido van Rossum and first released in 1991, Python's design philosophy emphasizes code readability with its notable use of significant whitespace. Its language constructs and object-oriented approach aim to help programmers write clear, logical code for small and large-scale projects.</li>
 <li>Python is dynamically typed and garbage-collected. It supports multiple programming paradigms, including procedural, object-oriented, and functional programming. Python is often described as a "batteries included" language due to its comprehensive standard library.</li>
@@ -13333,7 +13333,7 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 
 </div>
 </div>
-</div></section></section><section><section>
+</div></section><section>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
@@ -13353,7 +13353,7 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="https://docs.python.org/3/">https://docs.python.org/3/</a></p>
+<p>From <a href="https://docs.python.org/3/">https://docs.python.org/3/</a></p>
 <p><img src="images/Python-doc-page.png" alt=""></p>
 
 </div>
@@ -13362,7 +13362,7 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Beware-of-shadows-and-pitfalls">Beware of shadows and pitfalls<a class="anchor-link" href="#Beware-of-shadows-and-pitfalls">&#182;</a></h1><p>Python can be installed in many different ways with respect to different needs.</p>
+<h1 id="beware-of-shadows">beware of shadows<a class="anchor-link" href="#beware-of-shadows">&#182;</a></h1><p>Python can be installed in many different ways with respect to different needs.</p>
 <ul>
 <li><a href="https://www.anaconda.com/">https://www.anaconda.com/</a> </li>
 <li><a href="https://www.spyder-ide.org/">https://www.spyder-ide.org/</a></li>
@@ -13387,6 +13387,36 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="our-working-environment">our working environment<a class="anchor-link" href="#our-working-environment">&#182;</a></h1><p>There are many different possibilities to run Python programs:</p>
+<ul>
+<li>edit the program <code>my-script.py</code> and then invoke the bare bone<br>interpreter with <code>$ python my-script.py</code></li>
+<li>use an Integrated Development Environment (IDE from now on):<ul>
+<li><a href="https://www.spyder-ide.org/">https://www.spyder-ide.org/</a></li>
+<li><a href="https://www.jetbrains.com/pycharm/">https://www.jetbrains.com/pycharm/</a></li>
+<li><a href="https://vscodium.com/">https://vscodium.com/</a></li>
+</ul>
+</li>
+</ul>
+<p>Whatever you feel comfortable is okay.</p>
+<p><em>The important thing is that you play in a <strong>safe environment</strong></em>.</p>
+
+</div>
+</div>
+</div></section><section>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Quoting the official <a href="https://docs.python.org/3/library/venv.html">doc</a>:</p>
+<blockquote><p>Python provides support for creating lightweight “virtual environments” with their own site directories, optionally isolated from system site directories. Each virtual environment has its own Python binary (which matches the version of the binary that was used to create this environment) and can have its own independent set of installed Python packages in its site directories.</p>
+</blockquote>
+<p>Those environments allow you to freely (un)install modules and customize the interpreter, <em>without apporting those changes <strong>to the system installation</strong></em>.</p>
+
+</div>
+</div>
+</div></section><section>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
 <p><a href="https://docs.python.org/3/tutorial/venv.html">https://docs.python.org/3/tutorial/venv.html</a></p>
 <p><img src="images/Python-venv.png" alt=""></p>
 
@@ -13396,11 +13426,18 @@ Namespaces are one honking great idea -- let&#39;s do more of those!
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<div class="highlight"><pre><span></span>python3.7 -m venv unifi-env
+<div class="highlight"><pre><span></span>$ python3 -m venv unifi-env <span class="c1"># creates a virtual environment</span>
 </pre></div>
-<div class="highlight"><pre><span></span><span class="nb">source</span> unifi-env/bin/activate
+<div class="highlight"><pre><span></span>$ <span class="nb">source</span> unifi-env/bin/activate <span class="c1"># enter into our safe environment</span>
 </pre></div>
-<div class="highlight"><pre><span></span>pip install ipython jupyter matplotlib numpy scipy sympy pandas
+<div class="highlight"><pre><span></span><span class="o">(</span>unifi-env<span class="o">)</span> $ pip install ipython jupyter matplotlib numpy scipy <span class="se">\</span>
+                sympy pandas <span class="c1"># install some packages</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="o">(</span>unifi-env<span class="o">)</span> $ python <span class="k">do</span>-I-halt-or-not.py <span class="c1"># run your cool stuff</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="o">(</span>unifi-env<span class="o">)</span> $ deactivate <span class="c1"># exit the environment</span>
+</pre></div>
+<div class="highlight"><pre><span></span>$ <span class="c1"># back to the usual shell</span>
 </pre></div>
 
 </div>
@@ -13957,11 +13994,11 @@ $$F(k) = \int_{-\infty}^{\infty} f(x) e^{2\pi i k} dx$$
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="nbviewer"><code>nbviewer</code><a class="anchor-link" href="#nbviewer">&#182;</a></h2><p>If you publish your notebooks (Github, huh?), it is possible to render them as <em>static web documents</em> using the proxy <a href="http://nbviewer.jupyter.org/">http://nbviewer.jupyter.org/</a></p>
+<h2 id="nbviewer"><code>nbviewer</code><a class="anchor-link" href="#nbviewer">&#182;</a></h2><p>If you publish your notebooks (Github, huh?), it is possible to render them as <strong>static web documents</strong>:</p>
 <ul>
-<li>from there you can browse a collection of tutorials, books and notebooks targeting different languages...</li>
-<li>...altough we're mainly interested in <a href="http://nbviewer.jupyter.org/github/ipython/ipython/blob/4.0.x/examples/IPython%20Kernel/Index.ipynb">those</a> using Python :P </li>
-<li>finally, here is the browsable <a href="http://nbviewer.jupyter.org/github/massimo-nocentini/pacc/blob/master/paa-course/an-introduction-to-sympy.ipynb">link</a> to this notebook.</li>
+<li>using the proxy <a href="http://nbviewer.jupyter.org/">http://nbviewer.jupyter.org/</a>;</li>
+<li>from there you can browse a collection of tutorials, books and notebooks targeting different PL,</li>
+<li>altough we're mainly interested in <a href="http://nbviewer.jupyter.org/github/ipython/ipython/blob/4.0.x/examples/IPython%20Kernel/Index.ipynb">those</a> using Python, of course.</li>
 </ul>
 
 </div>
@@ -14119,51 +14156,24 @@ Examples
 </div>
 </div>
 
-</div></section><section>
+</div></section></section><section><section>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>You can use notebooks to write <em>slides</em> for your talks, use the toolbar on the top and follow:</p>
-
-<pre><code>View -&gt; Cell toolbar -&gt; slideshow</code></pre>
-<p>you should see each cell wrapped in a boxed frame, with a dropdown menu on the top-right corner, where you can select the slide type.</p>
-<p>Try messing something out, then evaluate the following cell:</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[56]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span>%%bash
-
-jupyter-nbconvert an-introduction-to-sympy.ipynb --to slides --post serve
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Process is terminated.
-</pre>
-</div>
-</div>
+<h1 id="welcome-to-the-carousel">welcome to the carousel<a class="anchor-link" href="#welcome-to-the-carousel">&#182;</a></h1><p>We have just scraped a little bit the surface of a big iceberg.</p>
+<p>Stand on the shoulder of:</p>
+<ul>
+<li><a href="https://g.co/kgs/q5aSbf">Guido van Rossum</a></li>
+<li><a href="https://g.co/kgs/SAHeD1">Peter Norvig</a></li>
+<li><a href="https://g.co/kgs/9qkvkY">David M. Beazley</a></li>
+<li><a href="https://g.co/kgs/RqGztj">Alex Martelli</a></li>
+<li><a href="https://g.co/kgs/A54z1o">Tim Peters</a></li>
+<li><a href="https://g.co/kgs/UsKs8e">Fredrik Lundh</a></li>
+</ul>
+<p>By the way, <em>this presentation is itself a notebook</em>.</p>
 
 </div>
 </div>
-
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
