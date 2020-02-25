@@ -1,0 +1,11 @@
+numpy
+scipy
+pandas
+jupyter
+ipython
+matplotlib
+sphinx
+sympy
+networkx
+memory_profiler
+line_profiler
