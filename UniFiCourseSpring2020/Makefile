@@ -1,4 +1,6 @@
 
+matplotlib:
+	jupyter-nbconvert matplotlib.ipynb --to slides
 pandas:
 	jupyter-nbconvert pandas.ipynb --to slides
 numpy:
@@ -7,4 +9,4 @@ notebook:
 	jupyter-nbconvert jupyter-notebooks.ipynb --to slides
 introduction:
 	jupyter-nbconvert introduction.ipynb --to slides
-all: introduction notebook numpy pandas
+all: introduction notebook numpy pandas matplotlib
