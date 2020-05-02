@@ -1,4 +1,6 @@
 
+networkx:
+	jupyter-nbconvert networkx.ipynb --to slides
 matplotlib:
 	jupyter-nbconvert matplotlib.ipynb --to slides
 pandas:
