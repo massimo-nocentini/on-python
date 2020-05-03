@@ -11,3 +11,5 @@ memory_profiler
 line_profiler
 seaborn
 pandas-datareader
+pygraphviz
+pydot
