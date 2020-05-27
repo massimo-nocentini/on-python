@@ -1,4 +1,6 @@
 
+gotchas:
+	jupyter-nbconvert gotchas.ipynb --to slides
 networkx:
 	jupyter-nbconvert networkx.ipynb --to slides
 matplotlib:
@@ -11,4 +13,4 @@ notebook:
 	jupyter-nbconvert jupyter-notebooks.ipynb --to slides
 introduction:
 	jupyter-nbconvert introduction.ipynb --to slides
-all: introduction notebook numpy pandas matplotlib
+all: introduction notebook numpy pandas matplotlib networkx gotchas
