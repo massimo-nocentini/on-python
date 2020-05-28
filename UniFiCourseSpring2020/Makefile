@@ -1,4 +1,6 @@
 
+generators:
+	jupyter-nbconvert generators.ipynb --to slides
 gotchas:
 	jupyter-nbconvert gotchas.ipynb --to slides
 networkx:
@@ -13,4 +15,4 @@ notebook:
 	jupyter-nbconvert jupyter-notebooks.ipynb --to slides
 introduction:
 	jupyter-nbconvert introduction.ipynb --to slides
-all: introduction notebook numpy pandas matplotlib networkx gotchas
+all: introduction notebook numpy pandas matplotlib networkx gotchas generators
