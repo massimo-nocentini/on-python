@@ -28,6 +28,8 @@ mark its checkbox in the list below:
   - [x] *introduction* about Lagrangian function ([view][nb:fdg-intro])
 - [ ] __Greedy algorithms__ ([folder][project:greedys]) by _myself_.
   - [x] *interval partitioning* 
+- [ ] __Calculus I__ ([folder][project:calculus-I]) by _myself_.
+  - [x] *numbers* ([notebook](https://nbviewer.jupyter.org/github/massimo-nocentini/on-python/blob/master/calculus-I/numbers.ipynb))
 
 # References
 
@@ -71,3 +73,4 @@ Some bookkeeping of stuff we hit on:
 [project:fdg]:https://github.com/massimo-nocentini/on-python/tree/master/fdg
 [nb:fdg-intro]:http://nbviewer.jupyter.org/github/massimo-nocentini/on-python/blob/master/fdg/intro.ipynb
 [project:greedys]:https://github.com/massimo-nocentini/on-python/tree/master/greedys
+[project:calculus-I]:https://github.com/massimo-nocentini/on-python/tree/master/calculus-I
