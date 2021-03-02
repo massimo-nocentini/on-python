@@ -23,6 +23,8 @@ mark its checkbox in the list below:
   by _Jason Hemann_ and _Daniel P. Friedman_.
 - [x] __double dispatch__ ([folder][project:double-dispatch])
   by _myself_.
+- [x] __Vigenere crypto analysis__ ([folder][project:vigenere])
+  by _myself_.
 - [ ] __Functional Differential Geometry__ ([folder][project:fdg])
   by _Gerald Jay Sussman and Jack Wisdom_.
   - [x] *introduction* about Lagrangian function ([view][nb:fdg-intro])
@@ -74,3 +76,4 @@ Some bookkeeping of stuff we hit on:
 [nb:fdg-intro]:http://nbviewer.jupyter.org/github/massimo-nocentini/on-python/blob/master/fdg/intro.ipynb
 [project:greedys]:https://github.com/massimo-nocentini/on-python/tree/master/greedys
 [project:calculus-I]:https://github.com/massimo-nocentini/on-python/tree/master/calculus-I
+[project:vigenere]:https://github.com/massimo-nocentini/on-python/tree/master/vigenere
